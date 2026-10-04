@@ -8,7 +8,12 @@ https://github.com/user-attachments/assets/953d1c82-9d57-48a2-8051-0631d8c9ccef
 
 **Drag to select terminal text and a comment popup opens automatically.** Once the mode is enabled, no extra shortcut is needed to open each comment. Add feedback, then send it to an AI agent in [Herdr](https://herdr.dev) with the selected text and its context, or collect several comments to send together. Context preserves Herdr provenance, pane metadata, and available foreground program information captured when opening the comment.
 
-Requirements: Herdr 0.9.0+ and Bun 1.3.0+ on `PATH`. Optional: `rg` for source-file detection.
+## Prerequisites
+
+> [!IMPORTANT]
+> Install **Herdr 0.9.0+** and **[Bun 1.3.0+](https://bun.com/docs/installation)** before installing this plugin. `bun` must be on `PATH` for Herdr. Herdr does not install the Bun runtime. Check with `bun --version`.
+
+Optional: `rg` for source-file detection.
 
 | OS | Clipboard / automatic capture |
 | --- | --- |
@@ -44,7 +49,7 @@ Run `herdr config check` and `herdr server reload-config`.
 
 ## Use
 
-Use your configured shortcut to toggle the mode (`prefix+f` in the example above). While enabled, copying new text found in a Herdr pane opens a popup. Spaces can show the mode with the `$comment_on_copy` token. Common terminal hosts are supported, including WezTerm, Ghostty, Windows Terminal, kitty, and Alacritty.
+Use your configured shortcut to toggle the mode (`prefix+f` in the example above). While enabled, copying new text found in a Herdr pane opens a popup. Common terminal hosts are supported, including WezTerm, Ghostty, Windows Terminal, kitty, and Alacritty.
 
 For manual use, bind `comment_on_copy.open` to a shortcut using the same format above. It opens selected text, or the clipboard if there is no selection. This also works on other Wayland desktops; selected text requires no clipboard tools.
 
@@ -52,7 +57,19 @@ For manual use, bind `comment_on_copy.open` to a shortcut using the same format 
 
 Message actions require a nonblank comment; in Collection, every checked item must have one. Send and submit also require a target agent.
 
-The indicator defaults to `[c]`. To use <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`) with a Nerd Font, put `indicator = "\uea6b"` in `config.toml` under the directory printed by `herdr plugin config-dir comment_on_copy`. `COMMENT_ON_COPY_INDICATOR` overrides this setting. Restart the mode after code changes.
+To show the mode in **Spaces**, add `$comment_on_copy` to your existing `[ui.sidebar.spaces].rows` in Herdr's `config.toml`. Example:
+
+```toml
+[ui.sidebar.spaces]
+rows = [
+  ["state_icon", "workspace", "$comment_on_copy"],
+  ["branch", "git_status"],
+]
+```
+
+Run `herdr config check` and `herdr server reload-config` after editing the layout.
+
+The indicator appears only while automatic capture is on and the sidebar is expanded. Collapsed and mobile layouts do not show custom Spaces tokens. The default is `[c]` and requires no Nerd Font. To use <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`) with a Nerd Font, put `indicator = "\uea6b"` in `config.toml` under the directory printed by `herdr plugin config-dir comment_on_copy`. `COMMENT_ON_COPY_INDICATOR` overrides this setting. Restart the mode after code changes.
 
 Copied and sent messages separate `context`, `selection`, and `comment` blocks. Collection batches wrap each entry in an `item` block.
 

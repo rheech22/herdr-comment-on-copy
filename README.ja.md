@@ -8,7 +8,12 @@ https://github.com/user-attachments/assets/953d1c82-9d57-48a2-8051-0631d8c9ccef
 
 **ターミナルのテキストをドラッグして選択すると、コメント用のポップアップが自動で開きます。** モードを一度有効にすれば、コメントのたびにポップアップを開くショートカットを押す必要はありません。選択したテキストと文脈にコメントを添えて [Herdr](https://herdr.dev) の AI エージェントへ送信したり、複数のコメントを集めてまとめて送信したりできます。文脈には Herdr が収集元であること、コメントを開く際のペイン情報、取得可能なフォアグラウンドのプログラム情報が含まれます。
 
-必要環境：Herdr 0.9.0+、`PATH` から実行できる Bun 1.3.0+。ソースファイルの検索には、任意で `rg` を使用します。
+## 前提条件
+
+> [!IMPORTANT]
+> プラグインをインストールする前に、**Herdr 0.9.0+** と **[Bun 1.3.0+](https://bun.com/docs/installation)** をインストールしてください。Herdr が利用する `PATH` から `bun` を実行できる必要があります。Herdr は Bun ランタイムをインストールしません。`bun --version` で確認できます。
+
+ソースファイルの検索には、任意で `rg` を使用します。
 
 | OS | クリップボード / 自動検出 |
 | --- | --- |
@@ -44,7 +49,7 @@ command = "comment_on_copy.toggle"
 
 ## 使い方
 
-設定したショートカットでモードの有効・無効を切り替えます（上の例では `prefix+f`）。有効な状態で Herdr のペインにある新しいテキストをコピーすると、ポップアップが開きます。Spaces の `$comment_on_copy` トークンでモードの状態を表示できます。WezTerm、Ghostty、Windows Terminal、kitty、Alacritty などの主要なターミナルに対応しています。
+設定したショートカットでモードの有効・無効を切り替えます（上の例では `prefix+f`）。有効な状態で Herdr のペインにある新しいテキストをコピーすると、ポップアップが開きます。WezTerm、Ghostty、Windows Terminal、kitty、Alacritty などの主要なターミナルに対応しています。
 
 手動で開くには、上記と同じ形式で `comment_on_copy.open` にショートカットを設定します。選択したテキストを優先し、選択がない場合はクリップボードを使用します。他の Wayland デスクトップでも利用でき、選択したテキストにはクリップボード用ツールが不要です。
 
@@ -52,7 +57,19 @@ command = "comment_on_copy.toggle"
 
 メッセージ操作には空でないコメントが必要です。Collection ではチェックしたすべての項目にコメントが必要で、send と submit には送信先エージェントも必要です。
 
-標準の表示は `[c]` です。Nerd Font の <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`) を使うには、`herdr plugin config-dir comment_on_copy` で確認したディレクトリの `config.toml` に `indicator = "\uea6b"` を追加します。環境変数 `COMMENT_ON_COPY_INDICATOR` がこの設定より優先されます。コード変更後はモードを無効にしてから再び有効にします。
+**Spaces** にモードの状態を表示するには、Herdr の `config.toml` にある既存の `[ui.sidebar.spaces].rows` に `$comment_on_copy` を追加します。例：
+
+```toml
+[ui.sidebar.spaces]
+rows = [
+  ["state_icon", "workspace", "$comment_on_copy"],
+  ["branch", "git_status"],
+]
+```
+
+レイアウトを変更したら、`herdr config check` と `herdr server reload-config` を実行してください。
+
+表示は自動検出モードが有効で、サイドバーが展開されているときにのみ現れます。折りたたまれたサイドバーとモバイルのレイアウトでは、カスタム Spaces トークンは表示されません。標準は `[c]` で、Nerd Font は不要です。Nerd Font の <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`) を使うには、`herdr plugin config-dir comment_on_copy` で確認したディレクトリの `config.toml` に `indicator = "\uea6b"` を追加します。環境変数 `COMMENT_ON_COPY_INDICATOR` がこの設定より優先されます。コード変更後はモードを無効にしてから再び有効にします。
 
 コピー・送信結果は `context`、`selection`、`comment` の各ブロックに分かれます。Collection の一括処理では、各項目を `item` ブロックで囲みます。
 

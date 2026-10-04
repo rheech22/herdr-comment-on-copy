@@ -8,7 +8,12 @@ https://github.com/user-attachments/assets/953d1c82-9d57-48a2-8051-0631d8c9ccef
 
 **터미널 텍스트를 드래그하면 코멘트 팝업이 자동으로 열립니다.** 모드를 한 번 켜두면 매번 팝업을 열기 위한 추가 단축키가 필요 없습니다. 코멘트를 작성해 선택 텍스트와 context를 [Herdr](https://herdr.dev)의 AI 에이전트로 보내거나, 여러 코멘트를 모아 한 번에 보낼 수 있습니다. context에는 Herdr 출처와 팝업을 열 때 수집한 pane 정보, 확인 가능한 전경 프로그램이 포함됩니다.
 
-필수: Herdr 0.9.0+, `PATH`에서 실행 가능한 Bun 1.3.0+. 원본 파일 탐색에는 `rg`를 선택적으로 사용합니다.
+## 사전 조건
+
+> [!IMPORTANT]
+> 플러그인 설치 전에 **Herdr 0.9.0+**와 **[Bun 1.3.0+](https://bun.com/docs/installation)**를 설치해야 합니다. Herdr에서 `bun`을 실행할 수 있도록 `PATH`에 등록되어 있어야 합니다. Herdr는 Bun 런타임을 설치해주지 않습니다. `bun --version`으로 확인합니다.
+
+원본 파일 탐색에는 `rg`를 선택적으로 사용합니다.
 
 | OS | 클립보드 / 자동 감지 |
 | --- | --- |
@@ -44,7 +49,7 @@ command = "comment_on_copy.toggle"
 
 ## 사용
 
-설정한 단축키로 모드를 켜거나 끕니다(위 예시에서는 `prefix+f`). 켜진 상태에서 Herdr pane에 있는 새 텍스트를 복사하면 팝업이 열립니다. Spaces의 `$comment_on_copy` 토큰으로 모드를 표시할 수 있습니다. WezTerm, Ghostty, Windows Terminal, kitty, Alacritty 등 주요 터미널을 지원합니다.
+설정한 단축키로 모드를 켜거나 끕니다(위 예시에서는 `prefix+f`). 켜진 상태에서 Herdr pane에 있는 새 텍스트를 복사하면 팝업이 열립니다. WezTerm, Ghostty, Windows Terminal, kitty, Alacritty 등 주요 터미널을 지원합니다.
 
 수동으로 열려면 위와 같은 형식으로 `comment_on_copy.open`에 단축키를 지정합니다. 선택한 텍스트를 사용하고, 선택이 없으면 클립보드를 사용합니다. 다른 Wayland 환경에서도 사용할 수 있으며, 선택한 텍스트에는 클립보드 도구가 필요하지 않습니다.
 
@@ -52,7 +57,19 @@ command = "comment_on_copy.toggle"
 
 메시지 액션은 비어 있지 않은 코멘트가 있어야 활성화됩니다. Collection에서는 체크한 모든 항목에 코멘트가 있어야 하며, send·submit에는 대상 에이전트도 필요합니다.
 
-기본 표시는 `[c]`입니다. Nerd Font에서 <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`)를 쓰려면 `herdr plugin config-dir comment_on_copy`로 확인한 디렉터리의 `config.toml`에 `indicator = "\uea6b"`를 추가합니다. `COMMENT_ON_COPY_INDICATOR` 환경 변수가 이 설정보다 우선합니다. 코드를 수정하면 모드를 껐다 켭니다.
+**Spaces**에 모드를 표시하려면 Herdr의 `config.toml`에서 기존 `[ui.sidebar.spaces].rows`에 `$comment_on_copy`를 추가합니다. 예시:
+
+```toml
+[ui.sidebar.spaces]
+rows = [
+  ["state_icon", "workspace", "$comment_on_copy"],
+  ["branch", "git_status"],
+]
+```
+
+레이아웃 수정 후 `herdr config check`와 `herdr server reload-config`를 실행합니다.
+
+표시는 자동 감지 모드가 켜져 있고 사이드바가 펼쳐져 있을 때만 나타납니다. 접힌 사이드바와 모바일 레이아웃에서는 사용자 정의 Spaces 토큰이 표시되지 않습니다. 기본값은 `[c]`이며 Nerd Font가 필요하지 않습니다. Nerd Font에서 <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`)를 쓰려면 `herdr plugin config-dir comment_on_copy`로 확인한 디렉터리의 `config.toml`에 `indicator = "\uea6b"`를 추가합니다. `COMMENT_ON_COPY_INDICATOR` 환경 변수가 이 설정보다 우선합니다. 코드를 수정하면 모드를 껐다 켭니다.
 
 복사·전송 결과는 `context`, `selection`, `comment` 블록으로 구분됩니다. Collection의 일괄 결과에서는 각 항목을 `item` 블록으로 감쌉니다.
 

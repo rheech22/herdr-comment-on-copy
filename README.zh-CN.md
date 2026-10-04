@@ -8,7 +8,12 @@ https://github.com/user-attachments/assets/953d1c82-9d57-48a2-8051-0631d8c9ccef
 
 **拖动选择终端文本，即可自动打开批注弹窗。** 开启模式后，每次添加批注都无需再按快捷键打开弹窗。写下反馈，将选中文本和上下文一起发送给 [Herdr](https://herdr.dev) 中的 AI 智能体，也可以收集多条批注后统一发送。上下文保留 Herdr 来源、打开批注时的窗格信息以及可获取的前台程序信息。
 
-要求：Herdr 0.9.0+，以及可通过 `PATH` 运行的 Bun 1.3.0+。可选：使用 `rg` 查找源文件。
+## 前置条件
+
+> [!IMPORTANT]
+> 安装此插件前，请先安装 **Herdr 0.9.0+** 和 **[Bun 1.3.0+](https://bun.com/docs/installation)**。`bun` 必须在 Herdr 可用的 `PATH` 中。Herdr 不会安装 Bun 运行时。使用 `bun --version` 检查。
+
+可选：使用 `rg` 查找源文件。
 
 | OS | 剪贴板 / 自动检测 |
 | --- | --- |
@@ -44,7 +49,7 @@ command = "comment_on_copy.toggle"
 
 ## 使用
 
-使用配置的快捷键开启或关闭此模式（上例为 `prefix+f`）。开启后，复制 Herdr 窗格中可找到的新文本即可打开弹窗。Spaces 可通过 `$comment_on_copy` 标记显示模式状态。支持 WezTerm、Ghostty、Windows Terminal、kitty、Alacritty 等常用终端。
+使用配置的快捷键开启或关闭此模式（上例为 `prefix+f`）。开启后，复制 Herdr 窗格中可找到的新文本即可打开弹窗。支持 WezTerm、Ghostty、Windows Terminal、kitty、Alacritty 等常用终端。
 
 如需手动打开，请按上述格式为 `comment_on_copy.open` 配置快捷键。优先使用选中文本，没有选区时使用剪贴板。其他 Wayland 桌面也可使用；选中文本无需剪贴板工具。
 
@@ -52,7 +57,19 @@ command = "comment_on_copy.toggle"
 
 消息操作需要非空批注；在 Collection 中，每个勾选条目都必须有批注。send 和 submit 还需要选择目标智能体。
 
-默认标记为 `[c]`。如需使用 Nerd Font 的 <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`)，请运行 `herdr plugin config-dir comment_on_copy`，在该目录的 `config.toml` 中添加 `indicator = "\uea6b"`。环境变量 `COMMENT_ON_COPY_INDICATOR` 优先于此设置。修改代码后请关闭并重新开启模式。
+如需在 **Spaces** 中显示模式状态，请在 Herdr 的 `config.toml` 中现有的 `[ui.sidebar.spaces].rows` 中添加 `$comment_on_copy`。示例：
+
+```toml
+[ui.sidebar.spaces]
+rows = [
+  ["state_icon", "workspace", "$comment_on_copy"],
+  ["branch", "git_status"],
+]
+```
+
+修改布局后，运行 `herdr config check` 和 `herdr server reload-config`。
+
+标记仅在自动检测模式开启且侧边栏展开时显示。折叠侧边栏和移动端布局不显示自定义 Spaces 标记。默认值为 `[c]`，无需 Nerd Font。如需使用 Nerd Font 的 <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`)，请运行 `herdr plugin config-dir comment_on_copy`，在该目录的 `config.toml` 中添加 `indicator = "\uea6b"`。环境变量 `COMMENT_ON_COPY_INDICATOR` 优先于此设置。修改代码后请关闭并重新开启模式。
 
 复制和发送的结果分为 `context`、`selection`、`comment` 区块。Collection 批量操作还会用 `item` 区块包裹每个条目。
 
