@@ -44,7 +44,7 @@ command = "comment_on_copy.toggle"
 
 수동으로 열려면 위와 같은 형식으로 `comment_on_copy.open`에 단축키를 지정합니다. 선택한 텍스트를 사용하고, 선택이 없으면 클립보드를 사용합니다. 다른 Wayland 환경에서도 사용할 수 있으며, 선택한 텍스트에는 클립보드 도구가 필요하지 않습니다.
 
-기본 표시는 `[c]`입니다. Nerd Font에서 ``를 쓰려면 `herdr plugin config-dir comment_on_copy`로 확인한 디렉터리의 `config.toml`에 `indicator = ""`를 추가합니다. `COMMENT_ON_COPY_INDICATOR` 환경 변수가 이 설정보다 우선합니다. 코드를 수정하면 모드를 껐다 켭니다.
+기본 표시는 `[c]`입니다. Nerd Font에서 <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`)를 쓰려면 `herdr plugin config-dir comment_on_copy`로 확인한 디렉터리의 `config.toml`에 `indicator = "\uea6b"`를 추가합니다. `COMMENT_ON_COPY_INDICATOR` 환경 변수가 이 설정보다 우선합니다. 코드를 수정하면 모드를 껐다 켭니다.
 
 | 키 | 동작 |
 | --- | --- |
@@ -76,4 +76,4 @@ bun run scripts/run.ts check
 
 실행 스크립트는 `~/.local/bin/bun`, `~/.bun/bin/bun`도 확인합니다(Windows는 `bun.exe`). `COMMENT_ON_COPY_BUN`으로 실행 파일을 지정할 수 있습니다. 인식되지 않는 터미널의 프로세스 이름은 `COMMENT_ON_COPY_TERMINALS`에 쉼표로 구분해 추가합니다.
 
-[기여 안내](CONTRIBUTING.md) · [MIT](LICENSE).
+[기여 안내](CONTRIBUTING.md) · [MIT](LICENSE). 아이콘: [Microsoft Codicons](https://github.com/microsoft/vscode-codicons) ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).

@@ -44,7 +44,7 @@ command = "comment_on_copy.toggle"
 
 如需手动打开，请按上述格式为 `comment_on_copy.open` 配置快捷键。优先使用选中文本，没有选区时使用剪贴板。其他 Wayland 桌面也可使用；选中文本无需剪贴板工具。
 
-默认标记为 `[c]`。如需使用 Nerd Font 的 ``，请运行 `herdr plugin config-dir comment_on_copy`，在该目录的 `config.toml` 中添加 `indicator = ""`。环境变量 `COMMENT_ON_COPY_INDICATOR` 优先于此设置。修改代码后请关闭并重新开启模式。
+默认标记为 `[c]`。如需使用 Nerd Font 的 <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`)，请运行 `herdr plugin config-dir comment_on_copy`，在该目录的 `config.toml` 中添加 `indicator = "\uea6b"`。环境变量 `COMMENT_ON_COPY_INDICATOR` 优先于此设置。修改代码后请关闭并重新开启模式。
 
 | 按键 | 操作 |
 | --- | --- |
@@ -76,4 +76,4 @@ bun run scripts/run.ts check
 
 运行脚本也会检查 `~/.local/bin/bun` 和 `~/.bun/bin/bun`（Windows 使用 `bun.exe`）。可通过 `COMMENT_ON_COPY_BUN` 指定运行程序。未识别的终端进程名称可添加到 `COMMENT_ON_COPY_TERMINALS`，用逗号分隔。
 
-[贡献指南](CONTRIBUTING.md) · [MIT](LICENSE).
+[贡献指南](CONTRIBUTING.md) · [MIT](LICENSE). 图标：[Microsoft Codicons](https://github.com/microsoft/vscode-codicons)（[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)）。

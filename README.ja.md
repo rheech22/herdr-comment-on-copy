@@ -44,7 +44,7 @@ command = "comment_on_copy.toggle"
 
 手動で開くには、上記と同じ形式で `comment_on_copy.open` にショートカットを設定します。選択したテキストを優先し、選択がない場合はクリップボードを使用します。他の Wayland デスクトップでも利用でき、選択したテキストにはクリップボード用ツールが不要です。
 
-標準の表示は `[c]` です。Nerd Font の `` を使うには、`herdr plugin config-dir comment_on_copy` で確認したディレクトリの `config.toml` に `indicator = ""` を追加します。環境変数 `COMMENT_ON_COPY_INDICATOR` がこの設定より優先されます。コード変更後はモードを無効にしてから再び有効にします。
+標準の表示は `[c]` です。Nerd Font の <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`) を使うには、`herdr plugin config-dir comment_on_copy` で確認したディレクトリの `config.toml` に `indicator = "\uea6b"` を追加します。環境変数 `COMMENT_ON_COPY_INDICATOR` がこの設定より優先されます。コード変更後はモードを無効にしてから再び有効にします。
 
 | キー | 操作 |
 | --- | --- |
@@ -76,4 +76,4 @@ bun run scripts/run.ts check
 
 実行スクリプトは `~/.local/bin/bun` と `~/.bun/bin/bun` も確認します（Windows は `bun.exe`）。`COMMENT_ON_COPY_BUN` で実行ファイルを指定できます。未認識のターミナルのプロセス名は、`COMMENT_ON_COPY_TERMINALS` にカンマ区切りで追加できます。
 
-[貢献ガイド](CONTRIBUTING.md) · [MIT](LICENSE).
+[貢献ガイド](CONTRIBUTING.md) · [MIT](LICENSE). アイコン：[Microsoft Codicons](https://github.com/microsoft/vscode-codicons)（[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)）。

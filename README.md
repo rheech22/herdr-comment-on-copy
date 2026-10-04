@@ -44,7 +44,7 @@ Press your prefix key, then `f`, to toggle. While enabled, copying new text foun
 
 For manual use, bind `comment_on_copy.open` to a shortcut using the same format above. It opens selected text, or the clipboard if there is no selection. This also works on other Wayland desktops; selected text requires no clipboard tools.
 
-The indicator defaults to `[c]`. To use `` with a Nerd Font, put `indicator = ""` in `config.toml` under the directory printed by `herdr plugin config-dir comment_on_copy`. `COMMENT_ON_COPY_INDICATOR` overrides this setting. Restart the mode after code changes.
+The indicator defaults to `[c]`. To use <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`) with a Nerd Font, put `indicator = "\uea6b"` in `config.toml` under the directory printed by `herdr plugin config-dir comment_on_copy`. `COMMENT_ON_COPY_INDICATOR` overrides this setting. Restart the mode after code changes.
 
 | Key | Action |
 | --- | --- |
@@ -76,4 +76,4 @@ Toggle the mode off and on after code changes. Close popups before moving or rem
 
 The runner also checks `~/.local/bin/bun` and `~/.bun/bin/bun` (on Windows, `bun.exe`). Override with `COMMENT_ON_COPY_BUN`. Add unrecognized terminal process names with `COMMENT_ON_COPY_TERMINALS`, separated by commas.
 
-[Contributing](CONTRIBUTING.md) · [MIT](LICENSE).
+[Contributing](CONTRIBUTING.md) · [MIT](LICENSE). Icon: [Microsoft Codicons](https://github.com/microsoft/vscode-codicons) ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)).
