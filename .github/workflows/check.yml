@@ -1,0 +1,35 @@
+name: Check
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      COMMENT_ON_COPY_NATIVE_TESTS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - if: runner.os == 'macOS'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: brew install ripgrep
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ripgrep xclip x11-utils xvfb wl-clipboard
+      - if: runner.os == 'Windows'
+        run: choco install ripgrep -y --no-progress
+      - run: bun install --frozen-lockfile
+      - if: runner.os == 'Linux'
+        run: xvfb-run -a bun run check
+      - if: runner.os != 'Linux'
+        run: bun run check
