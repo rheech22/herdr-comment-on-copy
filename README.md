@@ -11,7 +11,7 @@ https://github.com/user-attachments/assets/953d1c82-9d57-48a2-8051-0631d8c9ccef
 ## Prerequisites
 
 > [!IMPORTANT]
-> Install **Herdr 0.9.0+** and **[Bun 1.3.0+](https://bun.com/docs/installation)** before installing this plugin. `bun` must be on `PATH` for Herdr. Herdr does not install the Bun runtime. Check with `bun --version`.
+> Install **Herdr 0.9.0+** and **[Bun 1.3.0+](https://bun.com/docs/installation)** before installing this plugin. The launcher finds Bun on `PATH`, in `~/.bun/bin`, or in `~/.local/bin`, even when Herdr starts outside your login shell. Herdr does not install the Bun runtime. Check with `bun --version`.
 
 Optional: `rg` for source-file detection.
 
@@ -50,6 +50,8 @@ Run `herdr config check` and `herdr server reload-config`.
 ## Use
 
 Use your configured shortcut to toggle the mode (`prefix+f` in the example above). While enabled, copying new text found in a Herdr pane opens a popup. Common terminal hosts are supported, including WezTerm, Ghostty, Windows Terminal, kitty, and Alacritty.
+
+The popup opens before optional context finishes loading. You can type immediately; available context is captured when you send, yank, or collect. Source-file lookup is limited to Git repositories and never delays the popup.
 
 For manual use, bind `comment_on_copy.open` to a shortcut using the same format above. It opens selected text, or the clipboard if there is no selection. This also works on other Wayland desktops; selected text requires no clipboard tools.
 

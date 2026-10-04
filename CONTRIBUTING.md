@@ -18,7 +18,7 @@ Configure the shortcut described in the README, then run `herdr config check` an
 
 ## Validation
 
-`check` runs TypeScript checks and regression tests for capture, context, delivery, process cleanup, IPC, and OpenTUI rendering and input. Herdr API responses are simulated in these tests.
+`check` runs TypeScript checks and regression tests for capture, asynchronous context updates, delivery, process cleanup, IPC, and OpenTUI rendering and input. It also executes the manifest's build and action commands with Bun absent from `PATH`. Herdr API responses are simulated in these tests.
 
 [CI](.github/workflows/check.yml) runs on macOS, Windows, and Linux. It enables native clipboard tests with `COMMENT_ON_COPY_NATIVE_TESTS=1`; Linux uses Xvfb for X11. These tests replace clipboard contents and restore the original plain text. Native clipboard tests are skipped by default locally.
 

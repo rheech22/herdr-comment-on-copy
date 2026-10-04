@@ -24,6 +24,7 @@ export async function watch(desktop: Desktop = createDesktop()) {
     process.on("SIGTERM", stop);
     process.on("SIGINT", stop);
     clearStaleLock();
+    let marking: Promise<void> | undefined;
     try {
       const history = new ClipboardHistory(initial.text);
       history.observe(initial.text, initial.front);
@@ -31,12 +32,12 @@ export async function watch(desktop: Desktop = createDesktop()) {
       let markedAt = 0;
       let errorLogged = false;
       while (!stopping && !stopRequested()) {
-        await Bun.sleep(350);
+        await Bun.sleep(100);
         if (stopping || stopRequested()) break;
-        if (Date.now() - markedAt > 5000) {
+        if (!marking && Date.now() - markedAt > 5000) {
           clearStaleLock();
-          await api.mark(true);
           markedAt = Date.now();
+          marking = api.mark(true).finally(() => { marking = undefined; });
         }
         if (existsSync(paths.lock)) { wasOpen = true; continue; }
         try {
@@ -56,6 +57,8 @@ export async function watch(desktop: Desktop = createDesktop()) {
         }
       }
     } finally {
+      // Wait for an in-flight refresh before removing the indicator.
+      await marking;
       await api.mark(false);
       releasePid();
       process.off("SIGTERM", stop);

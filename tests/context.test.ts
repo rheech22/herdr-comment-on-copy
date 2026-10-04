@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
+import { run } from "../src/system.ts";
 import { buildContext, filesIn, findSource, theme } from "../src/context.ts";
 import { fakeApi } from "./helpers.ts";
 
@@ -31,6 +32,7 @@ describe("copy-time context", () => {
   });
   test("source detection points at the selection's first line", async () => {
     const cwd = directory();
+    await run(["git", "-C", cwd, "init"]);
     writeFileSync(join(cwd, "source.ts"), "// unrelated\nconst firstLine = true;\nconst secondLine = 'the longest matching line in this fixture';\n");
     expect(await findSource("const firstLine = true;\nconst secondLine = 'the longest matching line in this fixture';", cwd)).toBe("source.ts:2");
   });
@@ -61,10 +63,34 @@ describe("copy-time context", () => {
   });
   test("ambiguous source matches and short text omit the file", async () => {
     const cwd = directory();
+    await run(["git", "-C", cwd, "init"]);
     const selection = "this sufficiently long selection exists in several files";
     for (let i = 0; i < 4; i++) writeFileSync(join(cwd, `source-${i}.txt`), selection);
     expect(await findSource(selection, cwd)).toBeNull();
     expect(await findSource("short", cwd)).toBeNull();
+  });
+  test("source detection skips home, filesystem root and non-repositories", async () => {
+    const cwd = directory();
+    const selection = "this long terminal output must never scan the whole directory";
+    writeFileSync(join(cwd, "output.txt"), selection);
+    for (const path of [cwd, homedir(), process.platform === "win32" ? "C:\\" : "/"]) {
+      expect(await findSource(selection, path)).toBeNull();
+    }
+  });
+  test("a nested cwd searches only its repository root", async () => {
+    const cwd = directory();
+    await run(["git", "-C", cwd, "init"]);
+    mkdirSync(join(cwd, "nested"));
+    const selection = "this sufficiently long source line lives outside the current subdirectory";
+    writeFileSync(join(cwd, "source.ts"), selection);
+    expect(await findSource(selection, join(cwd, "nested"))).toBe(process.platform === "win32" ? "..\\source.ts:1" : "../source.ts:1");
+  });
+  test("closing a popup cancels a running optional context subprocess", async () => {
+    const controller = new AbortController();
+    const process = run([Bun.argv[0]!, "-e", "setTimeout(() => {}, 10000)"], 2000, controller.signal);
+    controller.abort();
+    await expect(process).rejects.toThrow();
+    expect(await findSource("a sufficiently long cancelled source selection", directory(), controller.signal)).toBeNull();
   });
   test("files mentioned in selections must exist", () => {
     const cwd = directory();

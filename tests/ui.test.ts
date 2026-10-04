@@ -43,6 +43,55 @@ async function create(payload: Payload = { text: "selected 한글", agents: [age
 }
 
 describe("OpenTUI popup", () => {
+  test("background context preserves drafts and collection selection while target actions wait for agents", async () => {
+    const payload: Payload = { text: "selection", agents_pending: true, source: { pane_id: "p1" } };
+    const app = await create(payload);
+    expect(app.setup.captureCharFrame()).toContain("loading agents");
+    await app.setup.mockInput.typeText("draft feedback");
+    await app.setup.flush();
+    expect(app.ui.insertButton.enabled).toBe(false);
+    expect(app.ui.chooseButton.enabled).toBe(false);
+    expect(app.ui.copyButton.enabled).toBe(true);
+    expect(app.ui.collectButton.enabled).toBe(true);
+    app.ui.collect();
+    app.setup.mockInput.pressKey(" "); await app.setup.flush();
+    const checked = [...app.ui.collection.checked];
+    app.ui.updatePayload({ agents: [agent("p1")], agents_pending: false, context: [["process", "nvim"]] });
+    await app.setup.flush();
+    expect(app.ui.tab).toBe("collection");
+    expect([...app.ui.collection.checked]).toEqual(checked);
+    expect(app.ui.editor.plainText).toBe("draft feedback");
+    expect(app.ui.target?.pane_id).toBe("p1");
+    expect(app.ui.insertButton.enabled).toBe(true);
+    expect(app.store.list()[0]?.context).toBeUndefined();
+    app.ui.switchTab("comment"); await app.setup.flush();
+    expect(app.setup.captureCharFrame()).toContain("nvim");
+  });
+  test("late metadata never replaces a recipient chosen by the user, and closed popups ignore updates", async () => {
+    const payload: Payload = { text: "selection", agents: [agent("p1"), agent("p2")], source: { pane_id: "p1" } };
+    const app = await create(payload);
+    await app.ui.choose();
+    app.setup.mockInput.pressKey("2"); await app.setup.flush();
+    expect(app.ui.target?.pane_id).toBe("p2");
+    app.ui.updatePayload({ origin: { pane_id: "p1", tab_id: "t1" }, context: [["branch", "main"]] });
+    expect(app.ui.target?.pane_id).toBe("p2");
+    app.ui.close();
+    app.ui.updatePayload({ context: [["branch", "wrong"]] });
+    expect(payload.context).toEqual([["branch", "main"]]);
+  });
+  test("yank freezes the context at action time while background metadata continues to arrive", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const app = await create({ text: "selection", agents_pending: true, context: [["source", "Herdr"]] }, false, collectionStore(), [], () => gate);
+    await app.setup.mockInput.typeText("feedback");
+    const copying = app.ui.copyResult();
+    app.ui.updatePayload({ context: [["source", "Herdr"], ["file", "late.ts:1"]] });
+    release(); await copying;
+    expect(app.copies[0]).toContain("source: Herdr");
+    expect(app.copies[0]).not.toContain("late.ts");
+    await app.ui.copyResult();
+    expect(app.copies[1]).toContain("file: late.ts:1");
+  });
   test("renders selection, destination, and controls in the Herdr popup size", async () => {
     const app = await create();
     const frame = app.setup.captureCharFrame();

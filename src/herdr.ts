@@ -13,7 +13,8 @@ export function indicator(env: NodeJS.ProcessEnv = process.env): string {
   return typeof value === "string" && value.trim() && !/[\x00-\x1f\x7f]/.test(value) ? value.trim() : "[c]";
 }
 
-export const call: Call = <T>(method: string, params: Record<string, unknown>): Promise<ApiReply<T>> => {
+export const call = <T>(method: string, params: Record<string, unknown>, signal?: AbortSignal): Promise<ApiReply<T>> => {
+  if (signal?.aborted) return Promise.reject(new Error("Herdr request cancelled"));
   let path = process.env.HERDR_SOCKET_PATH;
   if (path?.startsWith("//./pipe/")) path = path.replace(/\//g, "\\");
   if (!path) return Promise.reject(new Error("HERDR_SOCKET_PATH is missing; launch through Herdr."));
@@ -21,12 +22,15 @@ export const call: Call = <T>(method: string, params: Record<string, unknown>): 
     const socket = createConnection(path);
     let buffer = "";
     let settled = false;
+    const cancel = () => finish(new Error("Herdr request cancelled"));
     function finish(error?: Error, reply?: ApiReply<T>) {
       if (settled) return;
       settled = true;
+      signal?.removeEventListener("abort", cancel);
       socket.destroy();
       if (error) reject(error); else resolve(reply!);
     }
+    signal?.addEventListener("abort", cancel, { once: true });
     socket.setEncoding("utf8");
     socket.setTimeout(5000, () => finish(new Error(`Herdr API timed out: ${method}`)));
     socket.on("error", (error) => finish(error));
@@ -45,6 +49,15 @@ export const call: Call = <T>(method: string, params: Record<string, unknown>): 
 
 export class Herdr {
   constructor(readonly request: Call = call) {}
+  /** Share requests only within one capture, never across changes in the workspace. */
+  snapshot(signal?: AbortSignal) {
+    const requests = new Map<string, Promise<ApiReply<unknown>>>();
+    return new Herdr(<T>(method: string, params: Record<string, unknown>) => {
+      const key = JSON.stringify([method, params]);
+      if (!requests.has(key)) requests.set(key, this.request === call ? call(method, params, signal) : this.request(method, params));
+      return requests.get(key)! as Promise<ApiReply<T>>;
+    });
+  }
   async result<T>(method: string, params: Record<string, unknown> = {}): Promise<T> {
     const reply = await this.request<T>(method, params);
     if (reply.error) throw new Error(reply.error.message);
@@ -90,7 +103,7 @@ export class Herdr {
     if (Array.from(needle).length < 4) return null;
     try {
       const { panes } = await this.result<{ panes: Pane[] }>("pane.list");
-      for (const pane of panes.sort((a, b) => Number(!!b.focused) - Number(!!a.focused))) {
+      const read = async (pane: Pane): Promise<Source | null> => {
         try {
           const result = await this.result<{ read: { text: string } }>("pane.read", { pane_id: pane.pane_id, source: "visible", format: "text" });
           const lines = result.read.text.split("\n");
@@ -100,6 +113,21 @@ export class Herdr {
             if (offset >= 0) return { pane_id: pane.pane_id, row };
           }
         } catch { /* Try the next pane. */ }
+        return null;
+      };
+      const focused = panes.find(pane => pane.focused);
+      if (focused) {
+        const found = await read(focused);
+        if (found) return found;
+      }
+      const others = panes.filter(pane => pane !== focused);
+      for (let index = 0; index < others.length; index += 4) {
+        const found = await Promise.any(others.slice(index, index + 4).map(async pane => {
+          const source = await read(pane);
+          if (!source) throw new Error("Selection not found");
+          return source;
+        })).catch(() => null);
+        if (found) return found;
       }
     } catch { /* No source is better than a guessed source. */ }
     return null;

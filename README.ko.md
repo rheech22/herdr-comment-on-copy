@@ -11,7 +11,7 @@ https://github.com/user-attachments/assets/953d1c82-9d57-48a2-8051-0631d8c9ccef
 ## 사전 조건
 
 > [!IMPORTANT]
-> 플러그인 설치 전에 **Herdr 0.9.0+**와 **[Bun 1.3.0+](https://bun.com/docs/installation)**를 설치해야 합니다. Herdr에서 `bun`을 실행할 수 있도록 `PATH`에 등록되어 있어야 합니다. Herdr는 Bun 런타임을 설치해주지 않습니다. `bun --version`으로 확인합니다.
+> 플러그인 설치 전에 **Herdr 0.9.0+**와 **[Bun 1.3.0+](https://bun.com/docs/installation)**를 설치해야 합니다. Herdr를 로그인 셸 밖에서 실행해도 런처가 `PATH`, `~/.bun/bin`, `~/.local/bin`에서 Bun을 찾습니다. Herdr는 Bun 런타임을 설치해주지 않습니다. `bun --version`으로 확인합니다.
 
 원본 파일 탐색에는 `rg`를 선택적으로 사용합니다.
 
@@ -50,6 +50,8 @@ command = "comment_on_copy.toggle"
 ## 사용
 
 설정한 단축키로 모드를 켜거나 끕니다(위 예시에서는 `prefix+f`). 켜진 상태에서 Herdr pane에 있는 새 텍스트를 복사하면 팝업이 열립니다. WezTerm, Ghostty, Windows Terminal, kitty, Alacritty 등 주요 터미널을 지원합니다.
+
+팝업은 추가 context 수집을 기다리지 않고 열리므로 바로 입력할 수 있습니다. 전송·복사·수집 시점까지 준비된 context가 포함됩니다. 원본 파일 탐색은 Git 저장소로 제한되며 팝업 표시를 지연시키지 않습니다.
 
 수동으로 열려면 위와 같은 형식으로 `comment_on_copy.open`에 단축키를 지정합니다. 선택한 텍스트를 사용하고, 선택이 없으면 클립보드를 사용합니다. 다른 Wayland 환경에서도 사용할 수 있으며, 선택한 텍스트에는 클립보드 도구가 필요하지 않습니다.
 

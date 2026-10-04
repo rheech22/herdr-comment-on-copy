@@ -11,7 +11,7 @@ https://github.com/user-attachments/assets/953d1c82-9d57-48a2-8051-0631d8c9ccef
 ## 前提条件
 
 > [!IMPORTANT]
-> プラグインをインストールする前に、**Herdr 0.9.0+** と **[Bun 1.3.0+](https://bun.com/docs/installation)** をインストールしてください。Herdr が利用する `PATH` から `bun` を実行できる必要があります。Herdr は Bun ランタイムをインストールしません。`bun --version` で確認できます。
+> プラグインをインストールする前に、**Herdr 0.9.0+** と **[Bun 1.3.0+](https://bun.com/docs/installation)** をインストールしてください。Herdr をログインシェル以外から起動しても、ランチャーが `PATH`、`~/.bun/bin`、`~/.local/bin` から Bun を探します。Herdr は Bun ランタイムをインストールしません。`bun --version` で確認できます。
 
 ソースファイルの検索には、任意で `rg` を使用します。
 
@@ -50,6 +50,8 @@ command = "comment_on_copy.toggle"
 ## 使い方
 
 設定したショートカットでモードの有効・無効を切り替えます（上の例では `prefix+f`）。有効な状態で Herdr のペインにある新しいテキストをコピーすると、ポップアップが開きます。WezTerm、Ghostty、Windows Terminal、kitty、Alacritty などの主要なターミナルに対応しています。
+
+ポップアップは追加の context 収集を待たずに開き、すぐに入力できます。送信・コピー・収集時点で取得済みの context が含まれます。元ファイルの検索は Git リポジトリ内に限定し、ポップアップ表示を遅らせません。
 
 手動で開くには、上記と同じ形式で `comment_on_copy.open` にショートカットを設定します。選択したテキストを優先し、選択がない場合はクリップボードを使用します。他の Wayland デスクトップでも利用でき、選択したテキストにはクリップボード用ツールが不要です。
 

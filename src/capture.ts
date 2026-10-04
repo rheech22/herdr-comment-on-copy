@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
-import { buildContext, originOf } from "./context.ts";
+import { selectionContext } from "./context.ts";
 import { Herdr } from "./herdr.ts";
 import { ensureState, paths, remove } from "./paths.ts";
 import type { Source } from "./types.ts";
@@ -29,13 +29,12 @@ export async function openNote(api: Herdr, text: string, source?: Source | null,
   }
   try {
     const captured_at = new Date().toISOString();
-    const focused = focusedPane ?? await api.focused();
     const located = source === undefined ? await api.locate(text) : source;
+    const focused = focusedPane ?? located?.pane_id ?? await api.focused();
     const paneId = located?.pane_id || focused;
-    const [agents, origin, context] = await Promise.all([
-      api.agents(), originOf(api, paneId), view === "collection" ? [] : buildContext(api, paneId, text, located),
-    ]);
-    writeFileSync(paths.payload, JSON.stringify({ text, view, captured_at, source: located, focused_pane_id: focused, agents, origin, context }), { mode: 0o600 });
+    const context = view === "collection" ? [] : selectionContext(paneId, text, located);
+    writeFileSync(paths.payload, JSON.stringify({ text, view, captured_at, source: located,
+      focused_pane_id: focused, agents_pending: true, context }), { mode: 0o600 });
     // Herdr popups always open over the active pane and reject an explicit target.
     await api.result("plugin.pane.open", { plugin_id: "comment_on_copy", entrypoint: "note", focus: true });
     return true;

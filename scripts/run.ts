@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { dirname, delimiter, join } from "node:path";
 import { homedir } from "node:os";
-import { realpathSync } from "node:fs";
+import { copyFileSync, realpathSync, writeFileSync } from "node:fs";
 
 export const supported = (version: string) => {
   const match = /^(\d+)\.(\d+)\./.exec(version.trim());
@@ -33,7 +33,12 @@ async function main() {
   };
   if (executable !== realpathSync(process.execPath)) return child([executable, import.meta.path, ...process.argv.slice(2)]);
   switch (action) {
-    case "install": return child([executable, "install", "--frozen-lockfile", ...args]);
+    case "install": {
+      const launcher = join(import.meta.dir, "launch.cmd");
+      if (process.platform === "win32") copyFileSync(join(import.meta.dir, "run.cmd"), launcher);
+      else writeFileSync(launcher, '#!/bin/sh\nexec /bin/sh "$(dirname "$0")/run.sh" "$@"\n', { mode: 0o755 });
+      return child([executable, "install", "--frozen-lockfile", ...args]);
+    }
     case "check": return child([executable, "run", "--bun", "check", ...args]);
     case "toggle": return (await import("../src/toggle.ts")).toggle();
     case "open": return (await import("../src/open.ts")).open();

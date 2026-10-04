@@ -6,28 +6,33 @@ description = "Drag to select terminal text, add feedback, and send it with cont
 platforms = ["macos", "windows", "linux"]
 
 [[build]]
-command = ["bun", "run", "scripts/run.ts", "install"]
+platforms = ["macos", "linux"]
+command = ["/bin/sh", "scripts/run.sh", "install"]
+
+[[build]]
+platforms = ["windows"]
+command = ["scripts/run.cmd", "install"]
 
 [[actions]]
 id = "toggle"
 title = "Toggle comment on copy"
 description = "While on, copying opens a comment window."
 contexts = ["global"]
-command = ["bun", "run", "scripts/run.ts", "toggle"]
+command = ["scripts/launch.cmd", "toggle"]
 
 [[actions]]
 id = "open"
 title = "Comment on selected or copied text"
 description = "Open a comment without clipboard monitoring."
 contexts = ["global", "selection"]
-command = ["bun", "run", "scripts/run.ts", "open"]
+command = ["scripts/launch.cmd", "open"]
 
 [[actions]]
 id = "collection"
 title = "Open collected comments"
 description = "Browse collected text and comments without copying new text."
 contexts = ["global"]
-command = ["bun", "run", "scripts/run.ts", "collection"]
+command = ["scripts/launch.cmd", "collection"]
 
 [[panes]]
 id = "note"
@@ -35,4 +40,4 @@ title = "comment on copy"
 placement = "popup"
 width = 88
 height = 20
-command = ["bun", "run", "scripts/run.ts", "note"]
+command = ["scripts/launch.cmd", "note"]

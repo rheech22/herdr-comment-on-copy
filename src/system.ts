@@ -3,11 +3,11 @@ import { join } from "node:path";
 import { closeSync, openSync } from "node:fs";
 import { ensureState, paths } from "./paths.ts";
 
-export async function run(argv: string[], timeout = 2000): Promise<string> {
+export async function run(argv: string[], timeout = 2000, signal?: AbortSignal): Promise<string> {
   const [file, ...args] = argv;
   if (!file) throw new Error("Empty command");
   return new Promise((resolve, reject) => {
-    execFile(file, args, { timeout, maxBuffer: 8 * 1024 * 1024, encoding: "utf8" },
+    execFile(file, args, { timeout, signal, windowsHide: true, maxBuffer: 8 * 1024 * 1024, encoding: "utf8" },
       (error, stdout) => error ? reject(error) : resolve(stdout));
   });
 }

@@ -53,6 +53,20 @@ describe("Herdr API", () => {
     await new Promise<void>(resolve => server!.listen(socket, resolve));
     await expect(call("test", {})).rejects.toThrow("complete reply");
   });
+  test("closing a popup cancels an in-flight socket request without waiting for its timeout", async () => {
+    directory = mkdtempSync(join(tmpdir(), "comment-socket-"));
+    const socket = socketPath(directory);
+    process.env.HERDR_SOCKET_PATH = socket;
+    let connected!: () => void;
+    const ready = new Promise<void>(resolve => { connected = resolve; });
+    server = createServer(client => { clients.add(client); client.resume(); connected(); });
+    await new Promise<void>(resolve => server!.listen(socket, resolve));
+    const controller = new AbortController();
+    const request = call("test.wait", {}, controller.signal);
+    await ready;
+    controller.abort();
+    await expect(request).rejects.toThrow("cancelled");
+  });
   test("agent labels only gain suffixes when ambiguous", async () => {
     const api = fakeApi(method => {
       if (method === "agent.list") return { result: { agents: [
@@ -90,6 +104,24 @@ describe("Herdr API", () => {
       { workspace_id: "w1", source: "comment_on_copy", tokens: { comment_on_copy: "[c]" }, ttl_ms: 15000 },
       { workspace_id: "w1", source: "comment_on_copy", tokens: { comment_on_copy: "" }, ttl_ms: 1 },
     ]);
+  });
+  test("a matching nonfocused pane opens without waiting for a slow peer", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const reads: unknown[] = [];
+    const api = fakeApi(async (method, params) => {
+      if (method === "pane.list") return { result: { panes: [
+        { pane_id: "focused", focused: true }, { pane_id: "slow" }, { pane_id: "match" },
+      ] } };
+      reads.push(params.pane_id);
+      if (params.pane_id === "slow") await gate;
+      return { result: { read: { text: params.pane_id === "match" ? "copied selection" : "unrelated" } } };
+    });
+    try {
+      const found = await Promise.race([api.locate("copied selection"), Bun.sleep(200).then(() => "timed out")]);
+      expect(found).toEqual({ pane_id: "match", row: 0 });
+      expect(reads).toEqual(["focused", "slow", "match"]);
+    } finally { release(); }
   });
   test("indicator defaults to ASCII and accepts a configured Nerd Font glyph", () => {
     directory = mkdtempSync(join(tmpdir(), "comment-indicator-"));

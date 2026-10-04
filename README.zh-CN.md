@@ -11,7 +11,7 @@ https://github.com/user-attachments/assets/953d1c82-9d57-48a2-8051-0631d8c9ccef
 ## 前置条件
 
 > [!IMPORTANT]
-> 安装此插件前，请先安装 **Herdr 0.9.0+** 和 **[Bun 1.3.0+](https://bun.com/docs/installation)**。`bun` 必须在 Herdr 可用的 `PATH` 中。Herdr 不会安装 Bun 运行时。使用 `bun --version` 检查。
+> 安装此插件前，请先安装 **Herdr 0.9.0+** 和 **[Bun 1.3.0+](https://bun.com/docs/installation)**。即使 Herdr 在登录 shell 之外启动，启动器也会从 `PATH`、`~/.bun/bin` 或 `~/.local/bin` 查找 Bun。Herdr 不会安装 Bun 运行时。使用 `bun --version` 检查。
 
 可选：使用 `rg` 查找源文件。
 
@@ -50,6 +50,8 @@ command = "comment_on_copy.toggle"
 ## 使用
 
 使用配置的快捷键开启或关闭此模式（上例为 `prefix+f`）。开启后，复制 Herdr 窗格中可找到的新文本即可打开弹窗。支持 WezTerm、Ghostty、Windows Terminal、kitty、Alacritty 等常用终端。
+
+弹窗无需等待额外上下文收集完成即可打开，您可以立即输入。发送、复制或收集时包含当时已获取的上下文。源文件搜索仅限 Git 仓库，不会延迟弹窗打开。
 
 如需手动打开，请按上述格式为 `comment_on_copy.open` 配置快捷键。优先使用选中文本，没有选区时使用剪贴板。其他 Wayland 桌面也可使用；选中文本无需剪贴板工具。
 

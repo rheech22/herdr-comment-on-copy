@@ -21,7 +21,7 @@ test.skipIf(process.platform === "win32")("Unix wrapper selects a compatible fal
     const runner = join(import.meta.dir, "../scripts/run.sh");
     const installed = Bun.spawn(["sh", runner, "install"], { env, stderr: "pipe" });
     expect(await installed.exited).toBe(0);
-    expect(readFileSync(log, "utf8").split("\n").slice(0, 2)).toEqual(["install --frozen-lockfile", join(local, "bun")]);
+    expect(readFileSync(log, "utf8").split("\n").slice(0, 2)).toEqual(["run scripts/run.ts install", join(local, "bun")]);
     rmSync(log);
     const rejected = Bun.spawn(["sh", runner, "install"], {
       env: { ...env, COMMENT_ON_COPY_BUN: join(bin, "bun") }, stderr: "pipe",

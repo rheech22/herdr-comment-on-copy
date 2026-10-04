@@ -30,6 +30,7 @@ export type Origin = Pick<Pane, "pane_id" | "tab_id" | "workspace_id">;
 export type Context = [string, string][];
 export interface Payload {
   text: string;
+  agents_pending?: boolean;
   view?: "comment" | "collection";
   captured_at?: string;
   source?: Source | null;

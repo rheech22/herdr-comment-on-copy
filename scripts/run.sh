@@ -7,14 +7,19 @@ supported() {
   major=${version%%.*}
   rest=${version#*.}
   minor=${rest%%.*}
+  case "$major:$minor" in *[!0-9:]*) return 1 ;; esac
   [ "$major" -gt 1 ] || { [ "$major" -eq 1 ] && [ "$minor" -ge 3 ]; }
 }
 
 runtime=${COMMENT_ON_COPY_BUN:-bun}
 if ! supported "$runtime"; then
-  if [ -z "${COMMENT_ON_COPY_BUN:-}" ] && supported "$HOME/.local/bin/bun"; then
-    runtime=$HOME/.local/bin/bun
-  else
+  runtime=
+  if [ -z "${COMMENT_ON_COPY_BUN:-}" ]; then
+    for candidate in "$HOME/.local/bin/bun" "$HOME/.bun/bin/bun"; do
+      if supported "$candidate"; then runtime=$candidate; break; fi
+    done
+  fi
+  if [ -z "$runtime" ]; then
     printf '%s\n' 'Comment on Copy requires Bun 1.3.0+. Install Bun or set COMMENT_ON_COPY_BUN to its executable.' >&2
     exit 1
   fi
@@ -28,8 +33,6 @@ cd "$root"
 action=${1:-}
 if [ "$#" -gt 0 ]; then shift; fi
 case $action in
-  install) exec "$runtime" install --frozen-lockfile "$@" ;;
-  check) exec "$runtime" run check "$@" ;;
-  toggle|open|note) exec "$runtime" run scripts/run.ts "$action" "$@" ;;
-  *) printf '%s\n' 'Usage: scripts/run.sh install|check|toggle|open|note' >&2; exit 2 ;;
+  install|check|toggle|open|collection|note) exec "$runtime" run scripts/run.ts "$action" "$@" ;;
+  *) printf '%s\n' 'Usage: scripts/run.sh install|check|toggle|open|collection|note' >&2; exit 2 ;;
 esac

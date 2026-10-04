@@ -97,7 +97,14 @@ test("daemon filters external copies, captures context, stops cleanly, and allow
     paneText = undefined;
     writeFileSync(clipboard, "copied 한글 text");
     await wait(() => existsSync(join(state, "payload.json")));
-    const payload = JSON.parse(readFileSync(join(state, "payload.json"), "utf8")) as Payload;
+    const initial = JSON.parse(readFileSync(join(state, "payload.json"), "utf8")) as Payload;
+    expect(initial.agents_pending).toBe(true);
+    expect(initial.agents).toBeUndefined();
+    expect(initial.context).toContainEqual(["pane", "shell"]);
+    await wait(() => readFileSync(log, "utf8").includes("popup"));
+    const enriched = Bun.spawn([process.execPath, join(import.meta.dir, "fixtures/watcher.ts"), "enrich"], { env, stdout: "pipe", stderr: "pipe" });
+    const payload = JSON.parse(await new Response(enriched.stdout).text()) as Payload;
+    expect(await enriched.exited).toBe(0);
     expect(payload.text).toBe("copied 한글 text");
     expect(payload.source?.pane_id).toBe("shell");
     expect(payload.origin?.tab_id).toBe("t1");
@@ -149,7 +156,7 @@ test("daemon filters external copies, captures context, stops cleanly, and allow
     expect(collection.view).toBe("collection");
     expect(collection.text).toBe("");
     expect(collection.context).toEqual([]);
-    expect(collection.agents).toHaveLength(1);
+    expect(collection.agents_pending).toBe(true);
     rmSync(join(state, "popup.lock"));
     rejectPopup = true;
     const failure = await runOpen();

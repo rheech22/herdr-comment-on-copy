@@ -10,6 +10,7 @@ import { mountCollection } from "./collection-view.ts";
 import { ActionButton } from "./action-button.ts";
 import { Herdr } from "./herdr.ts";
 import { contextSummary, theme } from "./context.ts";
+import { enrichPayload } from "./enrich.ts";
 import { ensureState, paths, remove } from "./paths.ts";
 import { writeClipboard, closeDesktop } from "./platform.ts";
 import type { Agent, Payload } from "./types.ts";
@@ -35,6 +36,7 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
   const copy = options.copy || writeClipboard;
   let agents = payload.agents || [];
   let target = pickTarget(payload);
+  let targetChosen = false;
   let tab = payload.view || "comment";
   let picking = false;
   let busy = false;
@@ -76,7 +78,7 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
   const header = new BoxRenderable(renderer, { id: "header", flexDirection: "row", height: 1, flexShrink: 0, gap: 2 });
   const destination = new TextRenderable(renderer, { id: "destination", content: "", fg: accent, flexShrink: 1 });
   const chooseButton = new ActionButton(renderer, {
-    id: "choose-button", label: "[ ^L change ]", disabledColor: faint, enabled: available,
+    id: "choose-button", label: "[ ^L change ]", disabledColor: faint, enabled: () => available() && !payload.agents_pending,
     action: () => { void choose(); },
   });
   header.add(destination);
@@ -175,7 +177,7 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
     status.fg = kind === "ok" ? green : kind === "warn" ? yellow : faint;
   }
   function updateTarget() {
-    destination.content = `to ${target?.name || "—"}`;
+    destination.content = `to ${target?.name || (payload.agents_pending ? "loading agents…" : "—")}`;
     chooseButton.content = target ? "[ ^L change ]" : "[ ^L pick ]";
     updateActions();
   }
@@ -193,6 +195,7 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
   function selectAgent(index: number) {
     if (!agents[index] || busy || closed) return;
     target = agents[index]!;
+    targetChosen = true;
     updateTarget();
     leavePicker();
     say(`target → ${target.name}`);
@@ -228,6 +231,7 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
   }
   async function send(submit: boolean) {
     if (!deliveryReady()) return;
+    targetChosen = true;
     const selected = tab === "collection" ? collection.selected() : [];
     busy = true;
     updateActions();
@@ -328,6 +332,22 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
     renderer.keyInput.off("keypress", onKey);
     renderer.off(CliRenderEvents.RESIZE, onResize);
   }
+  function updatePayload(patch: Partial<Payload>) {
+    if (closed) return;
+    // Metadata updates never replace the selection, draft, tab or checked items.
+    Object.assign(payload, patch);
+    if (patch.agents) {
+      const selected = agents[pickerIndex]?.pane_id;
+      agents = patch.agents;
+      populateAgents();
+      if (picking) movePicker(Math.max(0, agents.findIndex(agent => agent.pane_id === selected)));
+    }
+    if (!targetChosen && !busy && !picking) target = pickTarget(payload);
+    context.content = contextSummary(payload.context);
+    context.visible = !!contextSummary(payload.context);
+    onResize();
+    updateTarget();
+  }
   function close() {
     if (closed) return;
     closed = true;
@@ -345,7 +365,7 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
     collection, commentTab, collectionTab, tabSwitch, chooseButton, closeButton, collectButton, deleteButton, undoButton, switchTab, collect,
     get tab() { return tab; },
     get target(): Agent | null { return target; }, get picking() { return picking; }, get busy() { return busy; },
-    close, choose, send, copyResult };
+    close, choose, send, copyResult, updatePayload };
 }
 
 export async function main() {
@@ -356,7 +376,9 @@ export async function main() {
     if (typeof payload.text !== "string") throw new Error("Missing selection");
   } catch { payload = { text: "(could not read the copied text)" }; }
   writeFileSync(paths.lock, String(process.pid), { mode: 0o600 });
+  const controller = new AbortController();
   const cleanup = () => {
+    controller.abort();
     closeDesktop();
     try { if (readFileSync(paths.lock, "utf8").trim() === String(process.pid)) remove(paths.lock); } catch { /* Already cleaned up. */ }
   };
@@ -365,7 +387,14 @@ export async function main() {
       exitOnCtrlC: true, useMouse: true, autoFocus: false,
       consoleMode: "disabled", openConsoleOnError: false, onDestroy: cleanup,
     });
-    try { mountNote(renderer, payload); } catch (error) { renderer.destroy(); throw error; }
+    try {
+      const api = new Herdr();
+      const note = mountNote(renderer, payload, { api });
+      // Mount the editable UI before asking for any optional context.
+      void enrichPayload(api, payload, note.updatePayload, controller.signal).catch(() => {
+        note.updatePayload({ agents_pending: false });
+      });
+    } catch (error) { renderer.destroy(); throw error; }
   } catch (error) { cleanup(); throw error; }
 }
 if (import.meta.main) await main();
