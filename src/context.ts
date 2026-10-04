@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, relative, sep, parse, resolve } from "node:path";
 import { homedir } from "node:os";
 import type { Context, Origin, Pane, Source } from "./types.ts";
@@ -29,7 +29,7 @@ export async function findSource(text: string, cwd?: string, signal?: AbortSigna
     return run(argv, Math.min(limit, remaining), signal);
   };
   try {
-    const root = (await execute(["git", "-C", cwd, "rev-parse", "--show-toplevel"], 150)).trim();
+    const [root, prefix = ""] = (await execute(["git", "-C", cwd, "rev-parse", "--show-toplevel", "--show-prefix"], 150)).trimEnd().split("\n");
     if (!root || resolve(root) === resolve(homedir()) || resolve(root) === parse(resolve(root)).root) return null;
     const hits = (await execute(["rg", "--fixed-strings", "--line-number", "--max-count", "1", "--no-messages", "--", needle, root]))
       .trim().split("\n").filter(Boolean);
@@ -46,7 +46,8 @@ export async function findSource(text: string, cwd?: string, signal?: AbortSigna
         if (match) line = match[1]!;
       } catch { /* Keep the line from the longest match. */ }
     }
-    return `${relative(realpathSync(cwd), realpathSync(path))}:${line}`;
+    // Git resolves symlinks and Windows short directory names consistently.
+    return `${relative(resolve(root, prefix), path)}:${line}`;
   } catch { return null; }
 }
 export async function originOf(api: Herdr, paneId?: string | null): Promise<Origin | null> {
