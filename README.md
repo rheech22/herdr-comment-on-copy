@@ -21,16 +21,22 @@ Install from GitHub:
 herdr plugin install rheech22/herdr-comment-on-copy
 ```
 
-Add `prefix+f` (`f` for feedback) to Herdr's `config.toml`:
+> [!IMPORTANT]
+> To open the popup by dragging to select text, Herdr's `[ui]` settings must have `copy_on_select = true`, and the mode must be enabled with `prefix+f`.
+
+Update the existing `[ui]` section in Herdr's `config.toml` and add `prefix+f` (`f` for feedback):
 
 ```toml
+[ui]
+copy_on_select = true
+
 [[keys.command]]
 key = "prefix+f"
 type = "plugin_action"
 command = "comment_on_copy.toggle"
 ```
 
-Run `herdr config check` and `herdr server reload-config`. Set `copy_on_select = true` in `[ui]` to open the popup when selecting text.
+Run `herdr config check` and `herdr server reload-config`.
 
 ## Use
 

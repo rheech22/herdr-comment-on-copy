@@ -21,16 +21,22 @@
 herdr plugin install rheech22/herdr-comment-on-copy
 ```
 
-在 Herdr 的 `config.toml` 中添加 `prefix+f` 快捷键（`f` 表示 feedback，反馈）：
+> [!IMPORTANT]
+> 要在拖动选择文本时自动打开弹窗，必须在 Herdr 的 `[ui]` 中设置 `copy_on_select = true`，并通过 `prefix+f` 开启此模式。
+
+在 Herdr 的 `config.toml` 中修改现有的 `[ui]` 配置，并添加 `prefix+f` 快捷键（`f` 表示 feedback，反馈）：
 
 ```toml
+[ui]
+copy_on_select = true
+
 [[keys.command]]
 key = "prefix+f"
 type = "plugin_action"
 command = "comment_on_copy.toggle"
 ```
 
-运行 `herdr config check` 和 `herdr server reload-config`。在 `[ui]` 中设置 `copy_on_select = true`，即可在选择文本时打开弹窗。
+运行 `herdr config check` 和 `herdr server reload-config`。
 
 ## 使用
 

@@ -1,6 +1,6 @@
 id = "comment_on_copy"
 name = "Comment on Copy"
-version = "0.2.0"
+version = "0.1.0"
 min_herdr_version = "0.9.0"
 description = "Comment on copied terminal text and send it to an agent."
 platforms = ["macos", "windows", "linux"]

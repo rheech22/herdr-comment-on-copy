@@ -21,16 +21,22 @@ GitHub からインストール：
 herdr plugin install rheech22/herdr-comment-on-copy
 ```
 
-Herdr の `config.toml` に `prefix+f` のショートカットを追加します（`f` は feedback、フィードバック）：
+> [!IMPORTANT]
+> ドラッグでテキストを選択した際にポップアップを自動で開くには、Herdr の `[ui]` で `copy_on_select = true` を設定し、`prefix+f` でモードを有効にする必要があります。
+
+Herdr の `config.toml` にある既存の `[ui]` 設定を更新し、`prefix+f` のショートカットを追加します（`f` は feedback、フィードバック）：
 
 ```toml
+[ui]
+copy_on_select = true
+
 [[keys.command]]
 key = "prefix+f"
 type = "plugin_action"
 command = "comment_on_copy.toggle"
 ```
 
-`herdr config check` と `herdr server reload-config` を実行します。テキスト選択時にポップアップを開くには、`[ui]` に `copy_on_select = true` を設定します。
+`herdr config check` と `herdr server reload-config` を実行します。
 
 ## 使い方
 

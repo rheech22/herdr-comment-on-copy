@@ -21,16 +21,22 @@ GitHub에서 설치:
 herdr plugin install rheech22/herdr-comment-on-copy
 ```
 
-Herdr의 `config.toml`에 `prefix+f` 단축키를 추가합니다(`f`는 feedback, 피드백):
+> [!IMPORTANT]
+> 드래그로 텍스트를 선택할 때 팝업이 자동으로 열리려면, Herdr의 `[ui]`에서 `copy_on_select = true`가 설정되어 있고 `prefix+f`로 모드가 켜져 있어야 합니다.
+
+Herdr의 `config.toml`에서 기존 `[ui]` 항목을 수정하고 `prefix+f` 단축키를 추가합니다(`f`는 feedback, 피드백):
 
 ```toml
+[ui]
+copy_on_select = true
+
 [[keys.command]]
 key = "prefix+f"
 type = "plugin_action"
 command = "comment_on_copy.toggle"
 ```
 
-`herdr config check`와 `herdr server reload-config`를 실행합니다. 텍스트 선택 시 팝업을 열려면 `[ui]`의 `copy_on_select = true`를 설정합니다.
+`herdr config check`와 `herdr server reload-config`를 실행합니다.
 
 ## 사용
 

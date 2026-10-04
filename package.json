@@ -1,6 +1,6 @@
 {
   "name": "herdr-comment-on-copy",
-  "version": "0.2.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Comment on copied terminal text and send it to an agent pane in Herdr.",
