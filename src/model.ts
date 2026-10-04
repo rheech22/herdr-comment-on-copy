@@ -55,6 +55,7 @@ export async function deliverText(api: Herdr, copy: (text: string) => Promise<vo
 }
 export async function deliver(api: Herdr, copy: (text: string) => Promise<void>, payload: Payload,
   comment: string, agent: Agent | null, submit: boolean): Promise<Delivery> {
+  if (!payload.text.trim()) return { close: false, message: "select or copy text first", kind: "warn" };
   if (!comment.trim()) return { close: false, message: "nothing yet, the comment is empty", kind: "warn" };
   return deliverText(api, copy, compose(payload, comment), agent, submit);
 }

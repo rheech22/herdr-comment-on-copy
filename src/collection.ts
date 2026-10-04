@@ -73,6 +73,7 @@ export class Collection implements CollectionStore {
 
   add(payload: Payload, comment: string): Collected {
     if (!payload.text.trim()) throw new Error("Select or copy text before collecting.");
+    if (!comment.trim()) throw new Error("Add a comment before collecting.");
     const { text, source, origin, context, captured_at } = payload;
     const item = structuredClone({ id: randomUUID(), created_at: new Date().toISOString(),
       text, comment, source, origin, context, captured_at });

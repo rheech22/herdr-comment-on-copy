@@ -14,11 +14,11 @@ function create() {
 }
 
 describe("collection persistence", () => {
-  test("preserves Unicode, blank comments and capture-time context after reopening, without saving agent targets", () => {
+  test("preserves Unicode, comments and capture-time context after reopening, without saving agent targets", () => {
     const store = create();
     const payload = { text: "한글🙂\nsecond line", agents: [agent("old-pane")],
       focused_pane_id: "old-pane", context: [["workspace", "first"]] as [string, string][], captured_at: "2026-01-01T00:00:00.000Z" };
-    const saved = store.add(payload, "");
+    const saved = store.add(payload, "feedback");
     payload.context[0]![1] = "changed";
     const entries = new Collection(store.file).list();
     expect(entries).toEqual([saved]);
@@ -51,7 +51,7 @@ describe("collection persistence", () => {
   });
   test("a live writer prevents mutations; an abandoned writer lock is recovered", () => {
     const store = create();
-    const first = store.add({ text: "first" }, "");
+    const first = store.add({ text: "first" }, "feedback");
     writeFileSync(`${store.file}.lock`, `${process.pid}:active`);
     expect(() => store.remove([first.id])).toThrow("busy");
     expect(store.list()).toEqual([first]);
@@ -59,7 +59,7 @@ describe("collection persistence", () => {
     let absent = 999999;
     for (;;) { try { process.kill(absent, 0); absent++; } catch { break; } }
     writeFileSync(`${store.file}.lock`, `${absent}:abandoned`);
-    expect(store.add({ text: "second" }, "").text).toBe("second");
+    expect(store.add({ text: "second" }, "feedback").text).toBe("second");
     expect(store.list()).toHaveLength(2);
   });
   test("blank selections are rejected without creating collection data", () => {
@@ -67,13 +67,19 @@ describe("collection persistence", () => {
     expect(() => store.add({ text: " \n" }, "comment")).toThrow("Select or copy");
     expect(store.list()).toEqual([]);
   });
+  test("blank comments cannot be added and do not change existing data", () => {
+    const store = create(); store.add({ text: "existing" }, "feedback");
+    const previous = readFileSync(store.file, "utf8");
+    for (const comment of ["", " \n\t"]) expect(() => store.add({ text: "new" }, comment)).toThrow("Add a comment");
+    expect(readFileSync(store.file, "utf8")).toBe(previous);
+  });
 });
 
 describe("collection delivery", () => {
   test("keeps each item's context and comment, orders by capture collection time, and escapes nested boundaries", async () => {
     const store = create();
     const first = store.add({ text: "first <item>quoted</item>", context: [["workspace", "one"]] }, "first comment");
-    const second = store.add({ text: "second", context: [["workspace", "two"]] }, "");
+    const second = store.add({ text: "second", context: [["workspace", "two"]] }, "feedback");
     first.created_at = "2026-01-01T00:00:00.000Z";
     second.created_at = "2026-01-02T00:00:00.000Z";
     const text = composeCollection([second, first]);
@@ -88,7 +94,7 @@ describe("collection delivery", () => {
     expect(store.list()).toHaveLength(2);
   });
   test("failed submission retains entries and failed insertion copies the entire batch as a fallback", async () => {
-    const store = create(); store.add({ text: "one" }, ""); store.add({ text: "two" }, "");
+    const store = create(); store.add({ text: "one" }, "feedback"); store.add({ text: "two" }, "feedback");
     const text = composeCollection(store.list());
     const api = fakeApi(() => ({ error: { message: "approval pending" } }));
     const copies: string[] = [];

@@ -2,6 +2,7 @@ import { BoxRenderable, ScrollBoxRenderable, TextAttributes, TextRenderable, typ
 import type { CollectionStore } from "./collection.ts";
 import { contextSummary } from "./context.ts";
 import type { Collected, Payload } from "./types.ts";
+import { ActionButton } from "./action-button.ts";
 
 const singleLine = (value: string) => value.replace(/[\x00-\x1f\x7f]/g, " ").trim();
 
@@ -34,22 +35,22 @@ export function mountCollection(renderer: CliRenderer, store: CollectionStore,
     onMouseDown: () => { if (available()) list.focus(); },
   });
   const controls = new BoxRenderable(renderer, {
-    id: "collection-controls", width: "100%", height: 2, flexShrink: 0,
+    id: "collection-controls", width: "100%", height: 1, flexShrink: 0, visible: false,
     flexDirection: "row", flexWrap: "wrap", columnGap: 1, rowGap: 0,
   });
-  function button(id: string, label: string, action: () => void) {
-    const view = new TextRenderable(renderer, {
-      id, content: label, fg: faint, height: 1,
-      onMouseDown: event => { if (event.button === 0 && available()) action(); },
+  function button(id: string, label: string, enabled: () => boolean, action: () => void, color?: string) {
+    const view = new ActionButton(renderer, {
+      id, label, disabledColor: faint, color, enabled: () => available() && enabled(), action,
     });
     controls.add(view);
     return view;
   }
-  button("check-button", "[ Space select ]", () => toggle());
-  button("check-all-button", "[ ^A all ]", toggleAll);
-  const deleteButton = button("delete-button", "[ Del remove ]", removeSelected);
-  const undoButton = button("undo-button", "[ ^Z undo ]", undo);
-  listPane.add(list); listPane.add(controls);
+  const checkButton = button("check-button", "[ Space select ]", () => items.length > 0, () => toggle());
+  const allButton = button("check-all-button", "[ ^A all ]", () => items.length > 0, toggleAll);
+  const deleteButton = button("delete-button", "[ ^D remove ]", () => checked.size > 0, removeSelected, colors.red || "#e46876");
+  const undoButton = button("undo-button", "[ ^Z undo ]", () => deleted.length > 0, undo);
+  function updateActions() { for (const button of [checkButton, allButton, deleteButton, undoButton]) button.update(); }
+  listPane.add(list);
   const preview = new ScrollBoxRenderable(renderer, {
     id: "collection-preview", flexGrow: 1, minWidth: 12, height: "100%",
     border: true, borderColor: faint, title: "Preview", titleColor: faint,
@@ -101,8 +102,7 @@ export function mountCollection(renderer: CliRenderer, store: CollectionStore,
     collectedAt.content = item ? `Collected ${new Date(item.created_at).toLocaleString()}` : "";
     if (previewId !== item?.id) { previewId = item?.id; preview.scrollTo(0); }
     list.title = `${listWidth >= 28 ? "Items · " : ""}${checked.size} selected`;
-    deleteButton.fg = checked.size ? colors.yellow || "#e6c384" : faint;
-    undoButton.fg = deleted.length ? text : faint;
+    updateActions();
     if (item) pendingFocus = `collected-${item.id}`;
     changed(items.length);
   }
@@ -154,8 +154,7 @@ export function mountCollection(renderer: CliRenderer, store: CollectionStore,
     } catch (error) { say((error as Error).message, "warn"); return false; }
   }
   function removeSelected() {
-    if (!available()) return;
-    if (!checked.size) { say("Select items, then choose an action.", "warn"); return; }
+    if (!deleteButton.enabled) return;
     try {
       deleted = store.remove([...checked]);
       refresh();
@@ -163,7 +162,7 @@ export function mountCollection(renderer: CliRenderer, store: CollectionStore,
     } catch (error) { say((error as Error).message, "warn"); }
   }
   function undo() {
-    if (!available() || !deleted.length) return;
+    if (!undoButton.enabled) return;
     try {
       store.restore(deleted);
       const count = deleted.length, focus = deleted[0]?.id;
@@ -174,23 +173,23 @@ export function mountCollection(renderer: CliRenderer, store: CollectionStore,
   function resize() {
     listWidth = Math.max(18, Math.min(34, Math.floor((renderer.width - 3) * 0.38)));
     listPane.width = listWidth;
-    controls.height = listWidth >= 27 ? 2 : 4;
+    controls.height = renderer.width - 2 >= 53 ? 1 : 2;
     update();
   }
   function onKey(key: KeyEvent): boolean {
     if (!available()) return false;
-    if (key.name === "up") move(index - 1);
-    else if (key.name === "down") move(index + 1);
-    else if (key.name === "space" || key.name === " ") toggle();
-    else if (key.ctrl && key.name === "a") toggleAll();
-    else if (key.name === "delete") removeSelected();
-    else if (key.ctrl && key.name === "z") undo();
+    if (!key.ctrl && key.name === "k") move(index - 1);
+    else if (!key.ctrl && key.name === "j") move(index + 1);
+    else if (key.name === "space" || key.name === " ") checkButton.invoke();
+    else if (key.ctrl && key.name === "a") allButton.invoke();
+    else if (key.ctrl && key.name === "d") deleteButton.invoke();
+    else if (key.ctrl && key.name === "z") undoButton.invoke();
     else if (key.name === "pageup") preview.scrollBy(-3);
     else if (key.name === "pagedown") preview.scrollBy(3);
     else return false;
     return true;
   }
-  return { root, list, listPane, preview, controls, deleteButton, undoButton, checked, refresh, resize, collect, removeSelected, undo, onKey,
+  return { root, list, listPane, preview, controls, checkButton, allButton, deleteButton, undoButton, updateActions, checked, refresh, resize, collect, removeSelected, undo, onKey,
     focus: () => list.focus(), selected: () => items.filter(item => checked.has(item.id)),
     get items() { return items; }, get index() { return index; } };
 }
