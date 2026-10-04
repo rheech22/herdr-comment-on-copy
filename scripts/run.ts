@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { dirname, delimiter, join } from "node:path";
 import { homedir } from "node:os";
-import { copyFileSync, realpathSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, realpathSync, writeFileSync } from "node:fs";
 
 export const supported = (version: string) => {
   const match = /^(\d+)\.(\d+)\./.exec(version.trim());
@@ -35,8 +35,20 @@ async function main() {
   switch (action) {
     case "install": {
       const launcher = join(import.meta.dir, "launch.cmd");
-      if (process.platform === "win32") copyFileSync(join(import.meta.dir, "run.cmd"), launcher);
-      else writeFileSync(launcher, '#!/bin/sh\nexec /bin/sh "$(dirname "$0")/run.sh" "$@"\n', { mode: 0o755 });
+      // Keep routine launches independent of server PATH and shell discovery costs.
+      // run.ts still validates the runtime and honors COMMENT_ON_COPY_BUN.
+      if (process.platform === "win32") {
+        const home = homedir();
+        const program = executable.toLowerCase().startsWith(home.toLowerCase() + "\\")
+          ? "%USERPROFILE%" + executable.slice(home.length).replaceAll("%", "%%") : executable.replaceAll("%", "%%");
+        // cmd uses the system code page; PowerShell handles uncommon Unicode locations.
+        if (/[^\x20-\x7e]/.test(program)) copyFileSync(join(import.meta.dir, "run.cmd"), launcher);
+        else writeFileSync(launcher, `@echo off\r\nsetlocal DisableDelayedExpansion\r\nif not exist "${program}" goto discover\r\n"${program}" "%~dp0run.ts" %*\r\nexit /b %errorlevel%\r\n:discover\r\ncall "%~dp0run.cmd" %*\r\nexit /b %errorlevel%\r\n`);
+      } else {
+        const program = "'" + executable.replaceAll("'", "'\\''") + "'";
+        writeFileSync(launcher, `#!/bin/sh\nif [ -x ${program} ]; then exec ${program} "$(dirname "$0")/run.ts" "$@"; fi\nexec /bin/sh "$(dirname "$0")/run.sh" "$@"\n`);
+        chmodSync(launcher, 0o755);
+      }
       return child([executable, "install", "--frozen-lockfile", ...args]);
     }
     case "check": return child([executable, "run", "--bun", "check", ...args]);

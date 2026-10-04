@@ -342,7 +342,7 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
       populateAgents();
       if (picking) movePicker(Math.max(0, agents.findIndex(agent => agent.pane_id === selected)));
     }
-    if (!targetChosen && !busy && !picking) target = pickTarget(payload);
+    if (!targetChosen && !picking) target = pickTarget(payload);
     context.content = contextSummary(payload.context);
     context.visible = !!contextSummary(payload.context);
     onResize();

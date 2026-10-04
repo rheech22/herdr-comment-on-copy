@@ -85,10 +85,12 @@ describe("OpenTUI popup", () => {
     const app = await create({ text: "selection", agents_pending: true, context: [["source", "Herdr"]] }, false, collectionStore(), [], () => gate);
     await app.setup.mockInput.typeText("feedback");
     const copying = app.ui.copyResult();
-    app.ui.updatePayload({ context: [["source", "Herdr"], ["file", "late.ts:1"]] });
+    app.ui.updatePayload({ context: [["source", "Herdr"], ["file", "late.ts:1"]], agents: [agent("p1")], agents_pending: false });
     release(); await copying;
     expect(app.copies[0]).toContain("source: Herdr");
     expect(app.copies[0]).not.toContain("late.ts");
+    expect(app.ui.target?.pane_id).toBe("p1");
+    expect(app.ui.insertButton.enabled).toBe(true);
     await app.ui.copyResult();
     expect(app.copies[1]).toContain("file: late.ts:1");
   });

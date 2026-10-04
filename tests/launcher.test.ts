@@ -24,6 +24,8 @@ test("manifest builds and opens comments and collection with Bun missing from th
   }
   cpSync(join(import.meta.dir, "../src"), join(project, "src"), { recursive: true });
   writeFileSync(join(project, "package.json"), JSON.stringify({ name: "launcher-fixture", private: true }));
+  // Reinstalling must replace a launcher from another OS and restore execute permissions.
+  writeFileSync(join(scripts, "launch.cmd"), "previous launcher", { mode: 0o600 });
   const socket = socketPath(root);
   const clients = new Set<Socket>();
   const calls: string[] = [];
