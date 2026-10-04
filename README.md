@@ -26,9 +26,9 @@ herdr plugin install rheech22/herdr-comment-on-copy
 ```
 
 > [!IMPORTANT]
-> To open the popup by dragging to select text, Herdr's `[ui]` settings must have `copy_on_select = true`, and the mode must be enabled with `prefix+f`.
+> To open the popup by dragging to select text, Herdr's `[ui]` settings must have `copy_on_select = true`, and the comment-on-copy mode must be enabled.
 
-Update the existing `[ui]` section in Herdr's `config.toml` and add `prefix+f` (`f` for feedback):
+Update the existing `[ui]` section in Herdr's `config.toml` and bind your preferred shortcut to `comment_on_copy.toggle`. This example uses `prefix+f` (`f` for feedback):
 
 ```toml
 [ui]
@@ -44,7 +44,7 @@ Run `herdr config check` and `herdr server reload-config`.
 
 ## Use
 
-Press your prefix key, then `f`, to toggle. While enabled, copying new text found in a Herdr pane opens a popup. Spaces can show the mode with the `$comment_on_copy` token. Common terminal hosts are supported, including WezTerm, Ghostty, Windows Terminal, kitty, and Alacritty.
+Use your configured shortcut to toggle the mode (`prefix+f` in the example above). While enabled, copying new text found in a Herdr pane opens a popup. Spaces can show the mode with the `$comment_on_copy` token. Common terminal hosts are supported, including WezTerm, Ghostty, Windows Terminal, kitty, and Alacritty.
 
 For manual use, bind `comment_on_copy.open` to a shortcut using the same format above. It opens selected text, or the clipboard if there is no selection. This also works on other Wayland desktops; selected text requires no clipboard tools.
 

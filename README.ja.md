@@ -26,9 +26,9 @@ herdr plugin install rheech22/herdr-comment-on-copy
 ```
 
 > [!IMPORTANT]
-> ドラッグでテキストを選択した際にポップアップを自動で開くには、Herdr の `[ui]` で `copy_on_select = true` を設定し、`prefix+f` でモードを有効にする必要があります。
+> ドラッグでテキストを選択した際にポップアップを自動で開くには、Herdr の `[ui]` で `copy_on_select = true` を設定し、コメントモードを有効にする必要があります。
 
-Herdr の `config.toml` にある既存の `[ui]` 設定を更新し、`prefix+f` のショートカットを追加します（`f` は feedback、フィードバック）：
+Herdr の `config.toml` にある既存の `[ui]` 設定を更新し、任意のショートカットを `comment_on_copy.toggle` に割り当てます。以下の例では `prefix+f` を使用します（`f` は feedback、フィードバック）：
 
 ```toml
 [ui]
@@ -44,7 +44,7 @@ command = "comment_on_copy.toggle"
 
 ## 使い方
 
-プレフィックスキーの後に `f` を押すと、有効・無効を切り替えます。有効な状態で Herdr のペインにある新しいテキストをコピーすると、ポップアップが開きます。Spaces の `$comment_on_copy` トークンでモードの状態を表示できます。WezTerm、Ghostty、Windows Terminal、kitty、Alacritty などの主要なターミナルに対応しています。
+設定したショートカットでモードの有効・無効を切り替えます（上の例では `prefix+f`）。有効な状態で Herdr のペインにある新しいテキストをコピーすると、ポップアップが開きます。Spaces の `$comment_on_copy` トークンでモードの状態を表示できます。WezTerm、Ghostty、Windows Terminal、kitty、Alacritty などの主要なターミナルに対応しています。
 
 手動で開くには、上記と同じ形式で `comment_on_copy.open` にショートカットを設定します。選択したテキストを優先し、選択がない場合はクリップボードを使用します。他の Wayland デスクトップでも利用でき、選択したテキストにはクリップボード用ツールが不要です。
 

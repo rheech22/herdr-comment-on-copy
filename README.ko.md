@@ -26,9 +26,9 @@ herdr plugin install rheech22/herdr-comment-on-copy
 ```
 
 > [!IMPORTANT]
-> 드래그로 텍스트를 선택할 때 팝업이 자동으로 열리려면, Herdr의 `[ui]`에서 `copy_on_select = true`가 설정되어 있고 `prefix+f`로 모드가 켜져 있어야 합니다.
+> 드래그로 텍스트를 선택할 때 팝업이 자동으로 열리려면, Herdr의 `[ui]`에서 `copy_on_select = true`가 설정되어 있고 코멘트 모드가 켜져 있어야 합니다.
 
-Herdr의 `config.toml`에서 기존 `[ui]` 항목을 수정하고 `prefix+f` 단축키를 추가합니다(`f`는 feedback, 피드백):
+Herdr의 `config.toml`에서 기존 `[ui]` 항목을 수정하고 원하는 단축키를 `comment_on_copy.toggle`에 연결합니다. 아래 예시는 `prefix+f`를 사용합니다(`f`는 feedback, 피드백):
 
 ```toml
 [ui]
@@ -44,7 +44,7 @@ command = "comment_on_copy.toggle"
 
 ## 사용
 
-프리픽스 키 다음 `f`를 눌러 켜거나 끕니다. 켜진 상태에서 Herdr pane에 있는 새 텍스트를 복사하면 팝업이 열립니다. Spaces의 `$comment_on_copy` 토큰으로 모드를 표시할 수 있습니다. WezTerm, Ghostty, Windows Terminal, kitty, Alacritty 등 주요 터미널을 지원합니다.
+설정한 단축키로 모드를 켜거나 끕니다(위 예시에서는 `prefix+f`). 켜진 상태에서 Herdr pane에 있는 새 텍스트를 복사하면 팝업이 열립니다. Spaces의 `$comment_on_copy` 토큰으로 모드를 표시할 수 있습니다. WezTerm, Ghostty, Windows Terminal, kitty, Alacritty 등 주요 터미널을 지원합니다.
 
 수동으로 열려면 위와 같은 형식으로 `comment_on_copy.open`에 단축키를 지정합니다. 선택한 텍스트를 사용하고, 선택이 없으면 클립보드를 사용합니다. 다른 Wayland 환경에서도 사용할 수 있으며, 선택한 텍스트에는 클립보드 도구가 필요하지 않습니다.
 

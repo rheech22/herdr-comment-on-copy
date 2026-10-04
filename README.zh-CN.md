@@ -26,9 +26,9 @@ herdr plugin install rheech22/herdr-comment-on-copy
 ```
 
 > [!IMPORTANT]
-> 要在拖动选择文本时自动打开弹窗，必须在 Herdr 的 `[ui]` 中设置 `copy_on_select = true`，并通过 `prefix+f` 开启此模式。
+> 要在拖动选择文本时自动打开弹窗，必须在 Herdr 的 `[ui]` 中设置 `copy_on_select = true`，并开启批注模式。
 
-在 Herdr 的 `config.toml` 中修改现有的 `[ui]` 配置，并添加 `prefix+f` 快捷键（`f` 表示 feedback，反馈）：
+在 Herdr 的 `config.toml` 中修改现有的 `[ui]` 配置，并将任意快捷键绑定到 `comment_on_copy.toggle`。以下示例使用 `prefix+f`（`f` 表示 feedback，反馈）：
 
 ```toml
 [ui]
@@ -44,7 +44,7 @@ command = "comment_on_copy.toggle"
 
 ## 使用
 
-按前缀键，再按 `f`，开启或关闭此模式。开启后，复制 Herdr 窗格中可找到的新文本即可打开弹窗。Spaces 可通过 `$comment_on_copy` 标记显示模式状态。支持 WezTerm、Ghostty、Windows Terminal、kitty、Alacritty 等常用终端。
+使用配置的快捷键开启或关闭此模式（上例为 `prefix+f`）。开启后，复制 Herdr 窗格中可找到的新文本即可打开弹窗。Spaces 可通过 `$comment_on_copy` 标记显示模式状态。支持 WezTerm、Ghostty、Windows Terminal、kitty、Alacritty 等常用终端。
 
 如需手动打开，请按上述格式为 `comment_on_copy.open` 配置快捷键。优先使用选中文本，没有选区时使用剪贴板。其他 Wayland 桌面也可使用；选中文本无需剪贴板工具。
 
