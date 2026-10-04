@@ -37,8 +37,9 @@ async function main() {
     case "check": return child([executable, "run", "--bun", "check", ...args]);
     case "toggle": return (await import("../src/toggle.ts")).toggle();
     case "open": return (await import("../src/open.ts")).open();
+    case "collection": return (await import("../src/open.ts")).openCollection();
     case "note": return (await import("../src/note.ts")).main();
-    default: throw new Error("Usage: bun run scripts/run.ts install|check|toggle|open|note");
+    default: throw new Error("Usage: bun run scripts/run.ts install|check|toggle|open|collection|note");
   }
 }
 if (import.meta.main) await main();

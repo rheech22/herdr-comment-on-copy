@@ -44,6 +44,8 @@ command = "comment_on_copy.toggle"
 
 手動で開くには、上記と同じ形式で `comment_on_copy.open` にショートカットを設定します。選択したテキストを優先し、選択がない場合はクリップボードを使用します。他の Wayland デスクトップでも利用でき、選択したテキストにはクリップボード用ツールが不要です。
 
+`Ctrl+K` は選択テキスト、コメント（空でも可）、元の文脈を保存し、**Collection** タブへ移動します。新しい項目にはフォーカスが移りますが、チェックは付きません。`Tab` またはタブのクリックで切り替え、下書きとチェック状態は保持されます。Collection では方向キーで移動し、`Space` または項目のクリックでチェックします。`Ctrl+S/E/Y` はチェックした項目を収集順に一つのメッセージへまとめて処理し、`Ctrl+L` は全項目の送信先を選択します。項目はローカルに保存され、再起動や操作後も残ります。`Delete` でチェックした項目を削除し、ポップアップを開いている間は `Ctrl+Z` で最後の削除を取り消せます。新しいテキストをコピーせずに一覧を開くには、`comment_on_copy.collection` にショートカットを設定します。
+
 標準の表示は `[c]` です。Nerd Font の <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`) を使うには、`herdr plugin config-dir comment_on_copy` で確認したディレクトリの `config.toml` に `indicator = "\uea6b"` を追加します。環境変数 `COMMENT_ON_COPY_INDICATOR` がこの設定より優先されます。コード変更後はモードを無効にしてから再び有効にします。
 
 | キー | 操作 |
@@ -52,6 +54,10 @@ command = "comment_on_copy.toggle"
 | Ctrl+E | 送信して実行 |
 | Ctrl+Y | 結果をコピー |
 | Ctrl+L | エージェントを選択 |
+| Ctrl+K | 保存して Collection を開く |
+| Tab | Comment / Collection の切り替え |
+| Space / Ctrl+A | 項目をチェック / 全選択を切り替え（Collection） |
+| Delete / Ctrl+Z | チェックした項目を削除 / 削除を取り消し（Collection） |
 | PageUp / PageDown | 選択したテキストをスクロール |
 | Esc | 閉じる |
 

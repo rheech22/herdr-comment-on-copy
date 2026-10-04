@@ -3,14 +3,27 @@ import { createTestRenderer, type TestRendererSetup } from "@opentui/core/testin
 import { mountNote } from "../src/note.ts";
 import { agent, fakeApi } from "./helpers.ts";
 import type { Payload } from "../src/types.ts";
+import { Collection, type CollectionStore } from "../src/collection.ts";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 let setup: TestRendererSetup | undefined;
-afterEach(() => { setup?.renderer.destroy(); setup = undefined; });
+const directories: string[] = [];
+function collectionStore() {
+  const dir = mkdtempSync(join(tmpdir(), "comment-collection-ui-")); directories.push(dir);
+  return new Collection(join(dir, "collection.json"));
+}
+afterEach(() => {
+  setup?.renderer.destroy(); setup = undefined;
+  for (const dir of directories.splice(0)) rmSync(dir, { recursive: true, force: true });
+});
 async function waitUntil(predicate: () => boolean) {
   for (let i = 0; i < 200 && !predicate(); i++) await Bun.sleep(10);
   expect(predicate()).toBe(true);
 }
-async function create(payload: Payload = { text: "selected 한글", agents: [agent("p1")] }, rejected = false) {
+async function create(payload: Payload = { text: "selected 한글", agents: [agent("p1")] }, rejected = false,
+  store: CollectionStore = collectionStore(), currentAgents = payload.agents || []) {
   setup = await createTestRenderer({ width: 88, height: 20, autoFocus: false, useMouse: true, consoleMode: "disabled" });
   const calls: { method: string; params: Record<string, unknown> }[] = [];
   const copies: string[] = [];
@@ -18,11 +31,12 @@ async function create(payload: Payload = { text: "selected 한글", agents: [age
   const ui = mountNote(setup.renderer, payload, {
     api: fakeApi((method, params) => {
       calls.push({ method, params });
+      if (method === "agent.list") return { result: { agents: currentAgents } };
       return rejected ? { error: { message: "approval pending" } } : { result: {} };
-    }), copy: async text => { copies.push(text); }, close: () => { closed = true; }, closeDelay: 0,
+    }), copy: async text => { copies.push(text); }, close: () => { closed = true; }, closeDelay: 0, collection: store,
   });
   await setup.flush();
-  return { setup, ui, calls, copies, get closed() { return closed; } };
+  return { setup, ui, calls, copies, store, get closed() { return closed; } };
 }
 
 describe("OpenTUI popup", () => {
@@ -141,5 +155,158 @@ describe("OpenTUI popup", () => {
     expect(app.ui.editor.plainText).toBe(text);
     expect(app.ui.editor.scrollY).toBeGreaterThan(0);
     expect(app.ui.editor.logicalCursor.row).toBe(29);
+  });
+});
+
+describe("Collection tab", () => {
+  test("Ctrl+K saves the full draft, keeps the popup open, focuses the new item without checking it, and survives reopening", async () => {
+    const payload: Payload = { text: "selected 한글", agents: [agent("p1")], context: [["process", "codex"]] };
+    const app = await create(payload);
+    await app.setup.mockInput.typeText("keep the entire comment");
+    app.setup.mockInput.pressArrow("left");
+    app.setup.mockInput.pressArrow("left");
+    app.setup.mockInput.pressKey("k", { ctrl: true });
+    await app.setup.flush();
+    expect(app.ui.tab).toBe("collection");
+    expect(app.closed).toBe(false);
+    expect(app.ui.collection.checked.size).toBe(0);
+    expect(app.store.list()[0]!.comment).toBe("keep the entire comment");
+    expect(app.setup.captureCharFrame()).toContain("Collection · 1");
+    expect(app.setup.captureCharFrame()).toContain("Added to Collection");
+    expect(app.ui.collection.items[app.ui.collection.index]!.text).toBe(payload.text);
+    expect(app.ui.collectButton.visible).toBe(false);
+    app.setup.mockInput.pressTab();
+    await app.setup.flush();
+    expect(app.ui.tab).toBe("comment");
+    expect(app.ui.editor.plainText).toBe("keep the entire comment");
+    app.setup.renderer.destroy();
+    const reopened = await create({ text: "", view: "collection", agents: [agent("p1")] }, false, app.store);
+    expect(reopened.ui.tab).toBe("collection");
+    expect(reopened.ui.collection.items).toHaveLength(1);
+    expect(reopened.setup.captureCharFrame()).toContain("keep the entire comment");
+  });
+  test("blank comments can be collected, and an empty selection cannot", async () => {
+    const app = await create();
+    app.ui.collect(); await app.setup.flush();
+    expect(app.store.list()[0]!.comment).toBe("");
+    app.setup.renderer.destroy();
+    const empty = await create({ text: "", view: "collection" });
+    empty.ui.switchTab("comment"); empty.ui.collect();
+    await empty.setup.flush();
+    expect(empty.ui.tab).toBe("comment");
+    expect(empty.store.list()).toEqual([]);
+    expect(empty.setup.captureCharFrame()).toContain("Select or copy text");
+  });
+  test("save failure keeps the draft and Comment tab intact", async () => {
+    const store = collectionStore();
+    store.add = () => { throw Error("disk full"); };
+    const app = await create(undefined, false, store);
+    await app.setup.mockInput.typeText("important draft");
+    app.setup.mockInput.pressKey("k", { ctrl: true });
+    await app.setup.flush();
+    expect(app.ui.tab).toBe("comment");
+    expect(app.ui.editor.plainText).toBe("important draft");
+    expect(app.setup.captureCharFrame()).toContain("disk full");
+  });
+  test("multiple selection copies one combined message, preserves entries and tab selection, and does not collect from the list", async () => {
+    const store = collectionStore();
+    store.add({ text: "first", context: [["workspace", "one"]] }, "first comment");
+    store.add({ text: "second", context: [["workspace", "two"]] }, "second comment");
+    const app = await create({ text: "unused", view: "collection", agents: [agent("p1")] }, false, store);
+    app.setup.mockInput.pressKey("y", { ctrl: true });
+    await app.setup.flush();
+    expect(app.copies).toEqual([]);
+    app.setup.mockInput.pressKey("a", { ctrl: true });
+    app.setup.mockInput.pressKey("k", { ctrl: true });
+    app.setup.mockInput.pressKey("y", { ctrl: true });
+    await app.setup.waitFor(() => app.copies.length === 1 && !app.ui.busy);
+    expect(app.copies[0]).toContain("workspace: one");
+    expect(app.copies[0]).toContain("workspace: two");
+    expect(app.copies[0]).toContain("second comment");
+    expect(app.closed).toBe(false);
+    expect(store.list()).toHaveLength(2);
+    app.ui.switchTab("comment"); app.ui.switchTab("collection");
+    expect(app.ui.collection.checked.size).toBe(2);
+  });
+  for (const [key, method] of [["s", "pane.send_input"], ["e", "agent.prompt"]] as const) {
+    test(`batch Ctrl+${key.toUpperCase()} makes one request and preserves saved entries`, async () => {
+      const store = collectionStore(); store.add({ text: "first" }, ""); store.add({ text: "second" }, "");
+      const app = await create({ text: "", view: "collection", agents: [agent("p1")] }, false, store);
+      app.setup.mockInput.pressKey("a", { ctrl: true });
+      app.setup.mockInput.pressKey(key, { ctrl: true });
+      await app.setup.waitFor(() => app.closed);
+      const deliveries = app.calls.filter(call => call.method === method);
+      expect(deliveries).toHaveLength(1);
+      expect(deliveries[0]!.params.text).toContain("first");
+      expect(deliveries[0]!.params.text).toContain("second");
+      expect(store.list()).toHaveLength(2);
+    });
+  }
+  test("a vanished target blocks delivery and Ctrl+L refreshes agents without losing selected items", async () => {
+    const store = collectionStore(); store.add({ text: "first" }, "");
+    const app = await create({ text: "", view: "collection", agents: [agent("old")] }, false, store, [agent("new")]);
+    app.setup.mockInput.pressKey("a", { ctrl: true });
+    app.setup.mockInput.pressKey("e", { ctrl: true });
+    await app.setup.waitFor(() => !app.ui.busy);
+    expect(app.ui.target).toBeNull();
+    expect(app.calls.some(call => call.method === "agent.prompt")).toBe(false);
+    app.setup.mockInput.pressKey("l", { ctrl: true });
+    await app.setup.waitFor(() => app.ui.picking);
+    app.setup.mockInput.pressEnter(); await app.setup.flush();
+    expect(app.ui.target?.pane_id).toBe("new");
+    expect(app.ui.tab).toBe("collection");
+    expect(app.ui.collection.checked.size).toBe(1);
+    app.setup.mockInput.pressKey("e", { ctrl: true });
+    await app.setup.waitFor(() => app.closed);
+    expect(app.calls.find(call => call.method === "agent.prompt")!.params.target).toBe("new");
+  });
+  test("batch rejection retains the open list and selection, and mouse Collect performs the same save transition", async () => {
+    const app = await create(undefined, true);
+    await app.setup.mockInput.typeText("keep this");
+    await app.setup.mockMouse.click(app.ui.collectButton.x + 2, app.ui.collectButton.y);
+    await app.setup.flush();
+    expect(app.ui.tab).toBe("collection");
+    app.setup.mockInput.pressKey("a", { ctrl: true });
+    app.setup.mockInput.pressKey("e", { ctrl: true });
+    await app.setup.waitFor(() => app.calls.some(call => call.method === "agent.prompt") && !app.ui.busy);
+    await app.setup.flush();
+    expect(app.closed).toBe(false);
+    expect(app.ui.collection.checked.size).toBe(1);
+    expect(app.store.list()).toHaveLength(1);
+    expect(app.setup.captureCharFrame()).toContain("approval pending");
+  });
+  test("Space and mouse select items; bulk deletion and undo persist across reopening", async () => {
+    const store = collectionStore(); store.add({ text: "first" }, ""); store.add({ text: "second" }, "");
+    const app = await create({ text: "", view: "collection" }, false, store);
+    app.setup.mockInput.pressKey(" ");
+    await app.setup.flush();
+    expect(app.ui.collection.checked.size).toBe(1);
+    const second = app.ui.collection.list.getRenderable(`collected-${app.ui.collection.items[1]!.id}`)!;
+    await app.setup.mockMouse.click(second.x + 2, second.y);
+    await app.setup.flush();
+    expect(app.ui.collection.checked.size).toBe(2);
+    app.setup.mockInput.pressKey("\x1b[3~"); await app.setup.flush();
+    expect(store.list()).toEqual([]);
+    expect(app.ui.collection.items).toEqual([]);
+    app.setup.mockInput.pressKey("z", { ctrl: true }); await app.setup.flush();
+    expect(store.list()).toHaveLength(2);
+    expect(app.ui.collection.checked.size).toBe(0);
+    expect(new Collection(store.file).list()).toHaveLength(2);
+  });
+  test("mouse tab switching and collection resizing keep the list, preview and actions visible", async () => {
+    const store = collectionStore(); store.add({ text: Array.from({ length: 20 }, (_, n) => `line ${n}`).join("\n") }, "long comment");
+    const app = await create(undefined, false, store);
+    await app.setup.mockInput.typeText("draft");
+    await app.setup.mockMouse.click(app.ui.collectionTab.x + 2, app.ui.collectionTab.y);
+    app.setup.resize(60, 16); await app.setup.flush();
+    expect(app.ui.tab).toBe("collection");
+    expect(app.setup.captureCharFrame()).toContain("^S insert");
+    expect(app.setup.captureCharFrame()).toContain("Del remove");
+    expect(app.ui.collection.list.height).toBeGreaterThan(0);
+    expect(app.ui.collection.preview.height).toBeGreaterThan(0);
+    app.setup.mockInput.pressKey("\x1b[6~"); await app.setup.flush();
+    expect(app.ui.collection.preview.scrollTop).toBeGreaterThan(0);
+    await app.setup.mockMouse.click(app.ui.commentTab.x + 2, app.ui.commentTab.y);
+    expect(app.ui.editor.plainText).toBe("draft");
   });
 });

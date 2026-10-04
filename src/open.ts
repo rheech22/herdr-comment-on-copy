@@ -13,4 +13,7 @@ export async function open() {
     if (!await openNote(new Herdr(), text, source, context.focused_pane_id)) throw new Error("A comment popup is already open.");
   } finally { closeDesktop(); }
 }
+export async function openCollection() {
+  if (!await openNote(new Herdr(), "", null, undefined, "collection")) throw new Error("A comment popup is already open.");
+}
 if (import.meta.main) await open();

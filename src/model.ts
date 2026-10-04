@@ -1,4 +1,4 @@
-import type { Agent, Payload } from "./types.ts";
+import type { Agent, Collected, Payload } from "./types.ts";
 import type { Herdr } from "./herdr.ts";
 
 export function tag(name: string, body: string): string {
@@ -27,11 +27,21 @@ export function pickTarget(payload: Payload): Agent | null {
   return agents.length === 1 ? agents[0]! : null;
 }
 export interface Delivery { close: boolean; message: string; kind: "ok" | "warn"; }
-export async function deliver(api: Herdr, copy: (text: string) => Promise<void>, payload: Payload,
-  comment: string, agent: Agent | null, submit: boolean): Promise<Delivery> {
-  if (!comment.trim()) return { close: false, message: "nothing yet, the comment is empty", kind: "warn" };
+export function composeCollected(item: Collected): string {
+  return compose({ ...item, context: [...(item.context || []),
+    ...(item.captured_at ? [["captured_at", item.captured_at] as [string, string]] : []),
+    ["collected_at", item.created_at]],
+  }, item.comment);
+}
+export function composeCollection(items: Collected[]): string {
+  const ordered = [...items].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const blocks = ordered.map(item => tag("item", composeCollected(item)));
+  return tag("collection", blocks.join("\n\n"));
+}
+
+export async function deliverText(api: Herdr, copy: (text: string) => Promise<void>, text: string,
+  agent: Agent | null, submit: boolean): Promise<Delivery> {
   if (!agent) return { close: false, message: "choose a target with ^L", kind: "warn" };
-  const text = compose(payload, comment);
   try {
     await api.result(submit ? "agent.prompt" : "pane.send_input", submit
       ? { target: agent.pane_id, text } : { pane_id: agent.pane_id, text });
@@ -42,4 +52,9 @@ export async function deliver(api: Herdr, copy: (text: string) => Promise<void>,
     catch { return { close: false, message: "insertion and clipboard copy failed", kind: "warn" }; }
     return { close: true, message: "insert failed, copied to clipboard instead", kind: "warn" };
   }
+}
+export async function deliver(api: Herdr, copy: (text: string) => Promise<void>, payload: Payload,
+  comment: string, agent: Agent | null, submit: boolean): Promise<Delivery> {
+  if (!comment.trim()) return { close: false, message: "nothing yet, the comment is empty", kind: "warn" };
+  return deliverText(api, copy, compose(payload, comment), agent, submit);
 }

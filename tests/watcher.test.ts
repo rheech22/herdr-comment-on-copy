@@ -126,8 +126,8 @@ test("daemon filters external copies, captures context, stops cleanly, and allow
     expect(existsSync(pidFile)).toBe(false);
     expect(readFileSync(log, "utf8").match(/comment on copy: on/g)?.length).toBe(1);
     const selected = "manual 한글 selection";
-    const runOpen = async () => {
-      const child = Bun.spawn([process.execPath, join(import.meta.dir, "../scripts/run.ts"), "open"], {
+    const runOpen = async (action = "open") => {
+      const child = Bun.spawn([process.execPath, join(import.meta.dir, "../scripts/run.ts"), action], {
         env: { ...env, PATH: "", DISPLAY: "", WAYLAND_DISPLAY: "",
           HERDR_PLUGIN_CONTEXT_JSON: JSON.stringify({ selected_text: selected, focused_pane_id: "shell" }) },
         stdout: "pipe", stderr: "pipe" });
@@ -143,6 +143,13 @@ test("daemon filters external copies, captures context, stops cleanly, and allow
     const duplicate = await runOpen();
     expect(duplicate.status).not.toBe(0);
     expect(duplicate.error).toContain("already open");
+    rmSync(join(state, "popup.lock"));
+    expect(await runOpen("collection")).toEqual({ status: 0, error: "" });
+    const collection = JSON.parse(readFileSync(join(state, "payload.json"), "utf8")) as Payload;
+    expect(collection.view).toBe("collection");
+    expect(collection.text).toBe("");
+    expect(collection.context).toEqual([]);
+    expect(collection.agents).toHaveLength(1);
     rmSync(join(state, "popup.lock"));
     rejectPopup = true;
     const failure = await runOpen();

@@ -44,6 +44,8 @@ command = "comment_on_copy.toggle"
 
 如需手动打开，请按上述格式为 `comment_on_copy.open` 配置快捷键。优先使用选中文本，没有选区时使用剪贴板。其他 Wayland 桌面也可使用；选中文本无需剪贴板工具。
 
+`Ctrl+K` 保存选中文本、批注（可留空）和原始上下文，然后切换到 **Collection** 标签页。新条目获得焦点，但不会自动勾选。按 `Tab` 或点击标签页切换，草稿和勾选状态会保留。在 Collection 中使用方向键浏览，按 `Space` 或点击条目勾选。`Ctrl+S/E/Y` 将勾选条目按收集顺序合并为一条消息处理；`Ctrl+L` 为整批条目选择接收者。条目保存在本地，重启或执行操作后仍会保留。`Delete` 删除勾选条目，弹窗保持打开时可用 `Ctrl+Z` 撤销最后一次删除。为 `comment_on_copy.collection` 配置快捷键，即可直接打开列表，无需复制新文本。
+
 默认标记为 `[c]`。如需使用 Nerd Font 的 <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`)，请运行 `herdr plugin config-dir comment_on_copy`，在该目录的 `config.toml` 中添加 `indicator = "\uea6b"`。环境变量 `COMMENT_ON_COPY_INDICATOR` 优先于此设置。修改代码后请关闭并重新开启模式。
 
 | 按键 | 操作 |
@@ -52,6 +54,10 @@ command = "comment_on_copy.toggle"
 | Ctrl+E | 发送并提交 |
 | Ctrl+Y | 复制结果 |
 | Ctrl+L | 选择智能体 |
+| Ctrl+K | 收集并打开 Collection |
+| Tab | 切换 Comment / Collection |
+| Space / Ctrl+A | 勾选条目 / 切换全选（Collection） |
+| Delete / Ctrl+Z | 删除勾选条目 / 撤销删除（Collection） |
 | PageUp / PageDown | 滚动选中文本 |
 | Esc | 关闭 |
 

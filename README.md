@@ -44,6 +44,8 @@ Press your prefix key, then `f`, to toggle. While enabled, copying new text foun
 
 For manual use, bind `comment_on_copy.open` to a shortcut using the same format above. It opens selected text, or the clipboard if there is no selection. This also works on other Wayland desktops; selected text requires no clipboard tools.
 
+`Ctrl+K` collects the selection, comment (which may be empty), and original context, then opens the **Collection** tab with the new item focused but unchecked. Use `Tab` or click the tabs to switch; your draft and checkboxes are preserved. In Collection, use arrows to browse and `Space` or click an item to check it. `Ctrl+S/E/Y` combines checked items in collection order into one message; `Ctrl+L` chooses one recipient for the batch. Items stay saved locally across restarts and after these actions. `Delete` removes checked items; `Ctrl+Z` undoes the last deletion while the popup remains open. Bind `comment_on_copy.collection` to open the list without copying text.
+
 The indicator defaults to `[c]`. To use <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`) with a Nerd Font, put `indicator = "\uea6b"` in `config.toml` under the directory printed by `herdr plugin config-dir comment_on_copy`. `COMMENT_ON_COPY_INDICATOR` overrides this setting. Restart the mode after code changes.
 
 | Key | Action |
@@ -52,6 +54,10 @@ The indicator defaults to `[c]`. To use <img src="docs/comment.svg" width="16" h
 | Ctrl+E | Send and submit |
 | Ctrl+Y | Copy the result |
 | Ctrl+L | Choose an agent |
+| Ctrl+K | Collect and open Collection |
+| Tab | Switch Comment / Collection |
+| Space / Ctrl+A | Check an item / toggle all (Collection) |
+| Delete / Ctrl+Z | Remove checked items / undo deletion (Collection) |
 | PageUp / PageDown | Scroll the selection |
 | Esc | Close |
 

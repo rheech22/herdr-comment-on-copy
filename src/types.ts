@@ -30,11 +30,19 @@ export type Origin = Pick<Pane, "pane_id" | "tab_id" | "workspace_id">;
 export type Context = [string, string][];
 export interface Payload {
   text: string;
+  view?: "comment" | "collection";
+  captured_at?: string;
   source?: Source | null;
   focused_pane_id?: string | null;
   agents?: Agent[];
   origin?: Origin | null;
   context?: Context;
+}
+
+export interface Collected extends Pick<Payload, "text" | "source" | "origin" | "context" | "captured_at"> {
+  id: string;
+  created_at: string;
+  comment: string;
 }
 
 export interface ApiReply<T> {

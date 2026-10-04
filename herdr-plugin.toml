@@ -22,6 +22,13 @@ description = "Open a comment without clipboard monitoring."
 contexts = ["global", "selection"]
 command = ["bun", "run", "scripts/run.ts", "open"]
 
+[[actions]]
+id = "collection"
+title = "Open collected comments"
+description = "Browse collected text and comments without copying new text."
+contexts = ["global"]
+command = ["bun", "run", "scripts/run.ts", "collection"]
+
 [[panes]]
 id = "note"
 title = "comment on copy"
