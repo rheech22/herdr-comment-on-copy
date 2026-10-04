@@ -1,6 +1,6 @@
 import {
   BoxRenderable, CliRenderEvents, createCliRenderer, ScrollBoxRenderable,
-  TextareaRenderable, TextRenderable,
+  TextareaRenderable, TextAttributes, TextRenderable,
   type CliRenderer, type KeyEvent, type MouseEvent,
 } from "@opentui/core";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -8,7 +8,7 @@ import { compose, composeCollection, deliver, deliverText, pickTarget } from "./
 import { Collection, type CollectionStore } from "./collection.ts";
 import { mountCollection } from "./collection-view.ts";
 import { Herdr } from "./herdr.ts";
-import { theme } from "./context.ts";
+import { contextSummary, theme } from "./context.ts";
 import { ensureState, paths, remove } from "./paths.ts";
 import { writeClipboard, closeDesktop } from "./platform.ts";
 import type { Agent, Payload } from "./types.ts";
@@ -44,16 +44,23 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
     id: "note", width: "100%", height: "100%", flexDirection: "column", paddingX: 1,
   });
   const tabs = new BoxRenderable(renderer, { id: "tabs", flexDirection: "row", height: 1, flexShrink: 0, gap: 2 });
+  const tabNames = new BoxRenderable(renderer, { id: "tab-names", flexDirection: "row", flexGrow: 1, minWidth: 0, height: 1, gap: 2 });
   const commentTab = new TextRenderable(renderer, {
-    id: "comment-tab", content: "[ Comment ]", fg: accent, height: 1,
+    id: "comment-tab", content: "Comment", fg: accent, height: 1, flexShrink: 0,
     onMouseDown: event => { if (event.button === 0) switchTab("comment"); },
   });
   const collectionTab = new TextRenderable(renderer, {
-    id: "collection-tab", content: "[ Collection · 0 ]", fg: faint, height: 1,
+    id: "collection-tab", content: "Collection · 0", fg: faint, height: 1, wrapMode: "none", truncate: true,
     onMouseDown: event => { if (event.button === 0) switchTab("collection"); },
   });
-  tabs.add(commentTab); tabs.add(collectionTab);
-  tabs.add(new TextRenderable(renderer, { id: "tab-hint", content: "Tab switch", fg: faint, height: 1 }));
+  tabNames.add(commentTab);
+  tabNames.add(new TextRenderable(renderer, { id: "tab-separator", content: "│", fg: faint, height: 1, flexShrink: 0 }));
+  tabNames.add(collectionTab);
+  const tabSwitch = new TextRenderable(renderer, {
+    id: "tab-switch", content: "[ Tab switch ]", fg: faint, height: 1, flexShrink: 0,
+    onMouseDown: event => { if (event.button === 0) switchTab(tab === "comment" ? "collection" : "comment"); },
+  });
+  tabs.add(tabNames); tabs.add(tabSwitch);
   root.add(tabs);
   const header = new BoxRenderable(renderer, { id: "header", flexDirection: "row", height: 1, flexShrink: 0, gap: 2 });
   const destination = new TextRenderable(renderer, { id: "destination", content: "", fg: accent, flexShrink: 1 });
@@ -69,13 +76,13 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
     id: "comment-pane", width: "100%", height: "100%", flexDirection: "column",
   });
   const context = new TextRenderable(renderer, {
-    id: "context", content: (payload.context || []).filter(([key]) => key !== "title").map(([, value]) => value).join("  ·  "),
-    fg: faint, height: 1, flexShrink: 0, wrapMode: "none",
+    id: "context", content: contextSummary(payload.context), visible: !!contextSummary(payload.context),
+    fg: faint, height: 1, flexShrink: 0, wrapMode: "none", truncate: true,
   });
   commentPane.add(context);
   const selection = new ScrollBoxRenderable(renderer, {
     id: "selection", width: "100%", height: Math.min(7, Math.max(3, renderer.height - 15)),
-    flexShrink: 0, border: true, borderColor: faint, title: "selected", titleColor: faint,
+    flexShrink: 0, border: true, borderColor: faint, title: "Selection", titleColor: faint,
     scrollX: false, scrollY: true,
     verticalScrollbarOptions: { showArrows: false, trackOptions: { foregroundColor: accent } },
   });
@@ -85,12 +92,12 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
   commentPane.add(selection);
   const commentBox = new BoxRenderable(renderer, {
     id: "comment-box", width: "100%", flexGrow: 1, minHeight: 4, border: true,
-    borderColor: faint, title: "comment", titleColor: faint, flexDirection: "column",
+    borderColor: faint, title: "Comment", titleColor: faint, flexDirection: "column",
   });
   const editor = new TextareaRenderable(renderer, {
     id: "comment-editor", width: "100%", flexGrow: 1, minHeight: 1, wrapMode: "char",
     textColor: text, focusedTextColor: text, cursorColor: accent,
-    placeholder: "Type a comment…", placeholderColor: faint,
+    placeholder: "Add your feedback…", placeholderColor: faint,
     onMouseDown: () => { if (!picking) editor.focus(); },
   });
   const picker = new ScrollBoxRenderable(renderer, {
@@ -122,30 +129,33 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
   body.add(commentPane); body.add(pickerBox);
   root.add(body);
   const status = new TextRenderable(renderer, {
-    id: "status", content: tab === "comment" ? "type a comment, then ^S or ^E" : "select items with Space, then ^S, ^E or ^Y",
+    id: "status", content: tab === "comment" ? "Type a comment, then choose an action." : "Select items, then choose an action.",
     fg: faint, height: 1, flexShrink: 0, wrapMode: "none",
   });
   root.add(status);
-  const footer = new BoxRenderable(renderer, { id: "buttons", flexDirection: "row", flexWrap: "wrap", height: 2, flexShrink: 0, gap: 1 });
-  const button = (id: string, label: string, color: string, action: (event: MouseEvent) => void) => {
+  const footer = new BoxRenderable(renderer, { id: "buttons", flexDirection: "row", height: 1, flexShrink: 0, gap: 2 });
+  const actions = new BoxRenderable(renderer, {
+    id: "actions", flexDirection: "row", flexWrap: "wrap", flexGrow: 1, minWidth: 0, height: "100%", columnGap: 1, rowGap: 0,
+  });
+  footer.add(actions);
+  const button = (id: string, label: string, color: string, action: (event: MouseEvent) => void, parent = actions) => {
     const view = new TextRenderable(renderer, { id, content: label, fg: color, height: 1,
       onMouseDown: event => { if (event.button === 0) action(event); } });
-    footer.add(view);
+    parent.add(view);
     return view;
   };
   const insertButton = button("insert-button", "[ ^S insert ]", faint, event => { void send(event.modifiers.ctrl); });
   const sendButton = button("send-button", "[ ^E send ]", accent, () => { void send(true); });
   const copyButton = button("copy-button", "[ ^Y copy ]", faint, () => { void copyResult(); });
   const collectButton = button("collect-button", "[ ^K collect ]", green, collect);
-  const deleteButton = button("delete-button", "[ Del remove ]", yellow, () => collection.removeSelected());
-  const undoButton = button("undo-button", "[ ^Z undo ]", faint, () => collection.undo());
-  button("close-button", "[ Esc close ]", faint, close);
+  const closeButton = button("close-button", "[ Esc close ]", faint, close, footer);
   root.add(footer);
   renderer.root.add(root);
   const collection = mountCollection(renderer, options.collection || new Collection(), colors,
-    count => { collectionTab.content = `[ Collection · ${count} ]`; }, say,
+    count => { collectionTab.content = `Collection · ${count}`; updateActions(); }, say,
     () => !busy && !closed && !picking && tab === "collection");
   body.add(collection.root);
+  const { deleteButton, undoButton } = collection;
 
   function say(message: string, kind: "ok" | "warn" | "hint" = "hint") {
     if (closed) return;
@@ -153,8 +163,14 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
     status.fg = kind === "ok" ? green : kind === "warn" ? yellow : faint;
   }
   function updateTarget() {
-    destination.content = `${tab === "collection" ? "collection" : "comment"}  to  ${target?.name || "nowhere"}`;
+    destination.content = `to ${target?.name || "—"}`;
     chooseButton.content = target ? "[ ^L change ]" : "[ ^L pick ]";
+    updateActions();
+  }
+  function updateActions() {
+    const selected = tab === "comment" || collection.checked.size > 0;
+    insertButton.fg = copyButton.fg = selected ? text : faint;
+    sendButton.fg = selected && target ? accent : faint;
   }
   function leavePicker() {
     picking = false;
@@ -199,7 +215,7 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
   async function send(submit: boolean) {
     if (busy || closed || picking) return;
     const selected = tab === "collection" ? collection.selected() : [];
-    if (tab === "collection" && !selected.length) { say("select items with Space first", "warn"); return; }
+    if (tab === "collection" && !selected.length) { say("Select items, then choose an action.", "warn"); return; }
     busy = true;
     say(submit ? "sending…" : "inserting…");
     try {
@@ -223,7 +239,7 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
   async function copyResult() {
     if (busy || closed || picking) return;
     const selected = tab === "collection" ? collection.selected() : [];
-    if (tab === "collection" && !selected.length) { say("select items with Space first", "warn"); return; }
+    if (tab === "collection" && !selected.length) { say("Select items, then choose an action.", "warn"); return; }
     busy = true;
     try { await copy((tab === "collection" ? composeCollection(selected) : compose(payload, editor.plainText)) + "\n"); say("copied to clipboard", "ok"); }
     catch (error) { say((error as Error).message, "warn"); }
@@ -233,9 +249,11 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
     commentPane.visible = tab === "comment";
     collection.root.visible = tab === "collection";
     collectButton.visible = tab === "comment";
-    deleteButton.visible = undoButton.visible = tab === "collection";
     commentTab.fg = tab === "comment" ? accent : faint;
     collectionTab.fg = tab === "collection" ? accent : faint;
+    commentTab.attributes = tab === "comment" ? TextAttributes.BOLD | TextAttributes.UNDERLINE : TextAttributes.NONE;
+    collectionTab.attributes = tab === "collection" ? TextAttributes.BOLD | TextAttributes.UNDERLINE : TextAttributes.NONE;
+    onResize();
     updateTarget();
     if (tab === "comment") editor.focus(); else collection.focus();
   }
@@ -245,7 +263,7 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
       if (next === "collection") collection.refresh();
       tab = next;
       showTab();
-      say(tab === "comment" ? "type a comment, then ^S or ^E" : "select items with Space, then ^S, ^E or ^Y");
+      say(tab === "comment" ? "Type a comment, then choose an action." : "Select items, then choose an action.");
     } catch (error) { say((error as Error).message, "warn"); }
   }
   function collect() {
@@ -278,8 +296,17 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
     if (handled) { key.preventDefault(); key.stopPropagation(); }
   }
   function onResize() {
-    selection.height = Math.min(7, Math.max(3, renderer.height - 15));
-    collection.list.height = Math.min(6, Math.max(2, renderer.height - 13));
+    const available = renderer.width - 2 - 15;
+    const widths = [13, 11, 11, ...(tab === "comment" ? [14] : [])];
+    let rows = 1, used = 0;
+    for (const width of widths) {
+      if (used && used + 1 + width > available) { rows++; used = 0; }
+      used += width + (used ? 1 : 0);
+    }
+    footer.height = rows;
+    selection.height = Math.min(7, Math.max(3, renderer.height - rows - (context.visible ? 1 : 0) - 8));
+    tabSwitch.content = renderer.width < 52 ? "[ Tab ]" : "[ Tab switch ]";
+    collection.resize();
   }
   function dispose() {
     renderer.keyInput.off("keypress", onKey);
@@ -298,7 +325,7 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
   onResize();
   showTab();
   return { editor, picker, selection, root, status, insertButton, sendButton, copyButton,
-    collection, commentTab, collectionTab, collectButton, deleteButton, undoButton, switchTab, collect,
+    collection, commentTab, collectionTab, tabSwitch, closeButton, collectButton, deleteButton, undoButton, switchTab, collect,
     get tab() { return tab; },
     get target(): Agent | null { return target; }, get picking() { return picking; }, get busy() { return busy; },
     close, choose, send, copyResult };

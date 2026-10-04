@@ -11,10 +11,15 @@ describe("prompt and routing", () => {
   });
   test("context, Korean selection, and multiline comment compose correctly", () => {
     expect(compose({ text: "한글\nselected\n", context: [["workspace", "main"]] }, "Please explain\nthis selection."))
-      .toBe("<context>\nworkspace: main\n</context>\n\n<selection>\n한글\nselected\n</selection>\n\nPlease explain\nthis selection.");
+      .toBe("<context>\nworkspace: main\n</context>\n\n<selection>\n한글\nselected\n</selection>\n\n<comment>\nPlease explain\nthis selection.\n</comment>");
   });
   test("missing context is omitted", () => {
-    expect(compose({ text: "copied text" }, "comment")).toBe("<selection>\ncopied text\n</selection>\n\ncomment");
+    expect(compose({ text: "copied text" }, "comment")).toBe("<selection>\ncopied text\n</selection>\n\n<comment>\ncomment\n</comment>");
+  });
+  test("comments have their own boundary even when they contain comment tags", () => {
+    expect(compose({ text: "selection" }, "  <comment>quoted</comment>\nfeedback  "))
+      .toBe("<selection>\nselection\n</selection>\n\n<comment-2>\n<comment>quoted</comment>\nfeedback\n</comment-2>");
+    expect(compose({ text: "selection" }, "")).toContain("<comment>\n\n</comment>");
   });
   const first = agent("p1"), second = agent("p2", "t2", "w2");
   const cases: [string, Payload, Agent | null][] = [

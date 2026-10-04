@@ -10,7 +10,7 @@ export function tag(name: string, body: string): string {
 export function compose(payload: Payload, comment: string): string {
   const blocks: string[] = [];
   if (payload.context?.length) blocks.push(tag("context", payload.context.map(([key, value]) => `${key}: ${value}`).join("\n")));
-  blocks.push(tag("selection", payload.text.replace(/\n+$/, "")), comment.trim());
+  blocks.push(tag("selection", payload.text.replace(/\n+$/, "")), tag("comment", comment.trim()));
   return blocks.join("\n\n");
 }
 export function pickTarget(payload: Payload): Agent | null {

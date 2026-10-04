@@ -48,6 +48,8 @@ command = "comment_on_copy.toggle"
 
 默认标记为 `[c]`。如需使用 Nerd Font 的 <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`)，请运行 `herdr plugin config-dir comment_on_copy`，在该目录的 `config.toml` 中添加 `indicator = "\uea6b"`。环境变量 `COMMENT_ON_COPY_INDICATOR` 优先于此设置。修改代码后请关闭并重新开启模式。
 
+复制和发送的结果分为 `context`、`selection`、`comment` 区块。Collection 批量操作还会用 `item` 区块包裹每个条目。
+
 | 按键 | 操作 |
 | --- | --- |
 | Ctrl+S | 插入智能体输入区 |

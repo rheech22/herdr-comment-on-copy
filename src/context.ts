@@ -94,6 +94,15 @@ export async function buildContext(api: Herdr, paneId: string | null, text: stri
   if (files.length) rows.push(["files", files.join(" ")]);
   return rows;
 }
+export function contextSummary(context: Context = []): string {
+  const values = new Map(context);
+  const workspace = values.get("workspace"), cwd = values.get("cwd");
+  const path = values.get("file") || (cwd?.split(/[\\/]/).filter(Boolean).at(-1) === workspace ? undefined : cwd);
+  return [...new Set([workspace, values.get("process"), path,
+    values.get("branch")].filter((value): value is string => !!value))]
+    .map(value => value.replace(/[\x00-\x1f\x7f]/g, " ")).join(" · ");
+}
+
 export function theme(): Record<string, string> {
   const root = process.env.XDG_CONFIG_HOME || (process.platform === "win32"
     ? process.env.APPDATA || join(homedir(), "AppData", "Roaming") : join(homedir(), ".config"));

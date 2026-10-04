@@ -48,6 +48,8 @@ For manual use, bind `comment_on_copy.open` to a shortcut using the same format 
 
 The indicator defaults to `[c]`. To use <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`) with a Nerd Font, put `indicator = "\uea6b"` in `config.toml` under the directory printed by `herdr plugin config-dir comment_on_copy`. `COMMENT_ON_COPY_INDICATOR` overrides this setting. Restart the mode after code changes.
 
+Copied and sent messages separate `context`, `selection`, and `comment` blocks. Collection batches wrap each entry in an `item` block.
+
 | Key | Action |
 | --- | --- |
 | Ctrl+S | Insert into the agent pane |

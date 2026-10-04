@@ -48,6 +48,8 @@ command = "comment_on_copy.toggle"
 
 標準の表示は `[c]` です。Nerd Font の <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`) を使うには、`herdr plugin config-dir comment_on_copy` で確認したディレクトリの `config.toml` に `indicator = "\uea6b"` を追加します。環境変数 `COMMENT_ON_COPY_INDICATOR` がこの設定より優先されます。コード変更後はモードを無効にしてから再び有効にします。
 
+コピー・送信結果は `context`、`selection`、`comment` の各ブロックに分かれます。Collection の一括処理では、各項目を `item` ブロックで囲みます。
+
 | キー | 操作 |
 | --- | --- |
 | Ctrl+S | エージェントの入力欄へ挿入 |

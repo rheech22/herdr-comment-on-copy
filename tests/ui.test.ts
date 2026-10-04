@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { createTestRenderer, type TestRendererSetup } from "@opentui/core/testing";
+import { TextAttributes } from "@opentui/core";
 import { mountNote } from "../src/note.ts";
 import { agent, fakeApi } from "./helpers.ts";
 import type { Payload } from "../src/types.ts";
@@ -43,11 +44,37 @@ describe("OpenTUI popup", () => {
   test("renders selection, destination, and controls in the Herdr popup size", async () => {
     const app = await create();
     const frame = app.setup.captureCharFrame();
-    expect(frame).toContain("comment  to  p1");
+    expect(frame).toContain("to p1");
     expect(frame).toContain("selected 한글");
     expect(frame).toContain("^S insert");
     expect(frame).toContain("^E send");
     expect(frame).toContain("^Y copy");
+  });
+  test("tabs use active underlines, the switch is a button, and compact source details retain provenance in copied output", async () => {
+    const app = await create({ text: "selection", agents: [agent("p1")], context: [
+      ["source", "Herdr (terminal workspace manager for AI agents) / Comment on Copy"],
+      ["capture", "Selected/copied terminal text and available Herdr pane metadata"],
+      ["workspace", "dotfiles"], ["process", "codex"], ["cwd", "~/dotfiles"], ["branch", "master"],
+    ] });
+    const frame = app.setup.captureCharFrame();
+    expect(frame).not.toContain("[ Comment ]");
+    expect(frame).toContain("[ Tab switch ]");
+    expect(frame).toContain("dotfiles · codex · master");
+    expect(frame).not.toContain("Herdr");
+    expect(frame).not.toContain("comment  to");
+    expect(frame).toContain("Type a comment, then choose an action.");
+    expect(app.ui.commentTab.attributes & TextAttributes.UNDERLINE).toBeGreaterThan(0);
+    await app.setup.mockInput.typeText("feedback");
+    app.setup.mockInput.pressKey("y", { ctrl: true });
+    await app.setup.waitFor(() => app.copies.length === 1 && !app.ui.busy);
+    expect(app.copies[0]).toContain("source: Herdr");
+    expect(app.copies[0]).toContain("cwd: ~/dotfiles");
+    expect(app.copies[0]).toContain("<comment>\nfeedback\n</comment>");
+    await app.setup.mockMouse.click(app.ui.tabSwitch.x + 2, app.ui.tabSwitch.y);
+    await app.setup.flush();
+    expect(app.ui.tab).toBe("collection");
+    expect(app.ui.collectionTab.attributes & TextAttributes.UNDERLINE).toBeGreaterThan(0);
+    expect(app.ui.commentTab.attributes & TextAttributes.UNDERLINE).toBe(0);
   });
   test("Korean and emoji editing preserves characters and multiline paste", async () => {
     const app = await create();
@@ -197,6 +224,21 @@ describe("Collection tab", () => {
     expect(empty.store.list()).toEqual([]);
     expect(empty.setup.captureCharFrame()).toContain("Select or copy text");
   });
+  test("collecting into a long list scrolls the new focused item into view after layout", async () => {
+    const store = collectionStore();
+    for (let index = 0; index < 20; index++) store.add({ text: `old selection ${index}` }, "");
+    const app = await create({ text: "new selection" }, false, store);
+    app.setup.resize(60, 16); await app.setup.flush();
+    app.setup.mockInput.pressKey("k", { ctrl: true });
+    const id = app.ui.collection.items[app.ui.collection.index]!.id;
+    await app.setup.waitFor(() => {
+      const row = app.ui.collection.list.getRenderable(`collected-${id}`)!;
+      return row.y > app.ui.collection.list.y && row.y + row.height < app.ui.collection.list.y + app.ui.collection.list.height;
+    });
+    expect(app.ui.collection.checked.size).toBe(0);
+    expect(app.ui.collection.list.scrollTop).toBeGreaterThan(0);
+    expect(app.setup.captureCharFrame()).toContain("new selection");
+  });
   test("save failure keeps the draft and Comment tab intact", async () => {
     const store = collectionStore();
     store.add = () => { throw Error("disk full"); };
@@ -302,11 +344,35 @@ describe("Collection tab", () => {
     expect(app.ui.tab).toBe("collection");
     expect(app.setup.captureCharFrame()).toContain("^S insert");
     expect(app.setup.captureCharFrame()).toContain("Del remove");
+    expect(app.setup.captureCharFrame()).toContain("0 selected");
     expect(app.ui.collection.list.height).toBeGreaterThan(0);
     expect(app.ui.collection.preview.height).toBeGreaterThan(0);
+    expect(app.ui.collection.preview.x).toBeGreaterThanOrEqual(app.ui.collection.list.x + app.ui.collection.list.width);
+    expect(app.ui.deleteButton.x).toBeLessThan(app.ui.collection.preview.x);
+    expect(app.ui.closeButton.y).toBeLessThan(16);
     app.setup.mockInput.pressKey("\x1b[6~"); await app.setup.flush();
     expect(app.ui.collection.preview.scrollTop).toBeGreaterThan(0);
     await app.setup.mockMouse.click(app.ui.commentTab.x + 2, app.ui.commentTab.y);
     expect(app.ui.editor.plainText).toBe("draft");
+  });
+  test("collection management buttons operate on the left while the preview and common actions stay visible", async () => {
+    const store = collectionStore();
+    store.add({ text: "first selection", context: [["workspace", "dotfiles"], ["process", "codex"]] }, "first feedback");
+    store.add({ text: "second selection" }, "second feedback");
+    const app = await create({ text: "", view: "collection" }, false, store);
+    expect(app.ui.collection.preview.x).toBeGreaterThan(app.ui.collection.list.x);
+    expect(app.setup.captureCharFrame()).toContain("Selection");
+    expect(app.setup.captureCharFrame()).toContain("first feedback");
+    expect(app.setup.captureCharFrame()).toContain("Select items, then choose an action.");
+    const check = app.ui.collection.controls.getRenderable("check-button")!;
+    await app.setup.mockMouse.click(check.x + 2, check.y); await app.setup.flush();
+    expect(app.ui.collection.checked.size).toBe(1);
+    const all = app.ui.collection.controls.getRenderable("check-all-button")!;
+    await app.setup.mockMouse.click(all.x + 2, all.y); await app.setup.flush();
+    expect(app.ui.collection.checked.size).toBe(2);
+    await app.setup.mockMouse.click(app.ui.deleteButton.x + 2, app.ui.deleteButton.y); await app.setup.flush();
+    expect(store.list()).toEqual([]);
+    await app.setup.mockMouse.click(app.ui.undoButton.x + 2, app.ui.undoButton.y); await app.setup.flush();
+    expect(store.list()).toHaveLength(2);
   });
 });

@@ -48,6 +48,8 @@ command = "comment_on_copy.toggle"
 
 기본 표시는 `[c]`입니다. Nerd Font에서 <img src="docs/comment.svg" width="16" height="16" alt="comment icon"> (`U+EA6B`)를 쓰려면 `herdr plugin config-dir comment_on_copy`로 확인한 디렉터리의 `config.toml`에 `indicator = "\uea6b"`를 추가합니다. `COMMENT_ON_COPY_INDICATOR` 환경 변수가 이 설정보다 우선합니다. 코드를 수정하면 모드를 껐다 켭니다.
 
+복사·전송 결과는 `context`, `selection`, `comment` 블록으로 구분됩니다. Collection의 일괄 결과에서는 각 항목을 `item` 블록으로 감쌉니다.
+
 | 키 | 동작 |
 | --- | --- |
 | Ctrl+S | 에이전트 입력란에 삽입 |
