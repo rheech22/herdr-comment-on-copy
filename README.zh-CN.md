@@ -2,6 +2,10 @@
 
 [English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
+**Drag. Comment. Send.**
+
+https://github.com/user-attachments/assets/953d1c82-9d57-48a2-8051-0631d8c9ccef
+
 **拖动选择终端文本，即可自动打开批注弹窗。** 开启模式后，每次添加批注都无需再按快捷键打开弹窗。写下反馈，将选中文本和上下文一起发送给 [Herdr](https://herdr.dev) 中的 AI 智能体，也可以收集多条批注后统一发送。上下文保留 Herdr 来源、打开批注时的窗格信息以及可获取的前台程序信息。
 
 要求：Herdr 0.9.0+，以及可通过 `PATH` 运行的 Bun 1.3.0+。可选：使用 `rg` 查找源文件。

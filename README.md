@@ -2,6 +2,10 @@
 
 [English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
+**Drag. Comment. Send.**
+
+https://github.com/user-attachments/assets/953d1c82-9d57-48a2-8051-0631d8c9ccef
+
 **Drag to select terminal text and a comment popup opens automatically.** Once the mode is enabled, no extra shortcut is needed to open each comment. Add feedback, then send it to an AI agent in [Herdr](https://herdr.dev) with the selected text and its context, or collect several comments to send together. Context preserves Herdr provenance, pane metadata, and available foreground program information captured when opening the comment.
 
 Requirements: Herdr 0.9.0+ and Bun 1.3.0+ on `PATH`. Optional: `rg` for source-file detection.
