@@ -96,6 +96,7 @@ describe("clipboard watcher policy", () => {
     const history = new ClipboardHistory("initial");
     history.observe("initial", "WezTerm");
     expect(history.observe("composed prompt", "WezTerm", undefined, true)).toBe("popup-result");
+    expect(history.observe("composed prompt", "WezTerm", undefined, true)).toBe("popup-result");
     history.observe("other", "WezTerm");
     expect(history.observe("composed prompt", "WezTerm")).toBe("open");
   });

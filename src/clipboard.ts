@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { ensureState, paths, remove } from "./paths.ts";
 
 const terminalNames = /(?:^|[\s._-])(?:wezterm(?:-gui)?|iterm2?|terminal|ghostty|kitty|alacritty|windowsterminal|conhost|mintty|gnome-terminal(?:-server)?|kgx|konsole|foot|xterm|urxvt|rxvt|st|terminator|tilix|rio|hyper|tabby)(?:$|[\s._-])/i;
@@ -11,14 +11,21 @@ export type CopyDecision = "unchanged" | "empty" | "popup-result" | "outside-ter
 /** Suppress only a copy actually produced by this plugin, not the next user's copy. */
 export function rememberPopupCopy(text: string, revision?: string) {
   ensureState();
-  writeFileSync(paths.clipboardOutput, JSON.stringify({ hash: fingerprint(text), revision, at: Date.now() }), { mode: 0o600 });
+  const temporary = `${paths.clipboardOutput}.${process.pid}.tmp`;
+  try {
+    writeFileSync(temporary, JSON.stringify({ hash: fingerprint(text), revision, at: Date.now() }), { mode: 0o600 });
+    renameSync(temporary, paths.clipboardOutput);
+  } finally { remove(temporary); }
 }
 export function consumePopupCopy(text: string, revision?: string): boolean {
   try {
     const output = JSON.parse(readFileSync(paths.clipboardOutput, "utf8"));
-    remove(paths.clipboardOutput);
-    return Date.now() - output.at < 10000 && output.hash === fingerprint(text)
+    if (Date.now() - output.at >= 10000) { remove(paths.clipboardOutput); return false; }
+    // The current sample may have started before the popup wrote its result.
+    const matches = output.hash === fingerprint(text)
       && (output.revision === undefined || revision === undefined || output.revision === revision);
+    if (matches) remove(paths.clipboardOutput);
+    return matches;
   } catch { return false; }
 }
 
@@ -32,8 +39,8 @@ export class ClipboardHistory {
     const unchanged = text === this.last && (revision === undefined || this.revision === undefined || revision === this.revision);
     this.last = text;
     this.revision = revision;
-    if (unchanged) return "unchanged";
     if (popupResult) return "popup-result";
+    if (unchanged) return "unchanged";
     if (!text.trim()) return "empty";
     return isTerminal(front) && isTerminal(before) ? "open" : "outside-terminal";
   }
