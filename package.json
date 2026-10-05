@@ -1,6 +1,6 @@
 {
   "name": "herdr-comment-on-copy",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
   "description": "Drag to select terminal text, add feedback, and send it with context to an AI agent in Herdr.",
