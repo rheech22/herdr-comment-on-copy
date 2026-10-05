@@ -53,6 +53,8 @@ Use your configured shortcut to toggle the mode (`prefix+f` in the example above
 
 The popup opens before optional context finishes loading. You can type immediately; available context is captured when you send, yank, or collect. Source-file lookup is limited to Git repositories and never delays the popup.
 
+See [Context collection](docs/context.md) for each field's source and purpose, file lookup, and collection timing and limitations.
+
 For manual use, bind `comment_on_copy.open` to a shortcut using the same format above. It opens selected text, or the clipboard if there is no selection. This also works on other Wayland desktops; selected text requires no clipboard tools.
 
 `Ctrl+K` collects the selection, comment, and original context, then opens the **Collection** tab with the new item focused but unchecked. Use `Tab` or click the tabs to switch; your draft and checkboxes are preserved. In Collection, use `j/k` or `↑/↓` to browse and `Space` or click an item to check it. `Ctrl+S/E/Y` combines checked items in collection order into one message; `Ctrl+L` chooses one recipient for the batch. Items stay saved locally across restarts and after these actions. `Ctrl+D` removes checked items; `Ctrl+Z` undoes the last deletion while the popup remains open. Bind `comment_on_copy.collection` to open the list without copying text.
