@@ -1,6 +1,6 @@
 id = "comment_on_copy"
 name = "Comment on Copy"
-version = "0.2.0"
+version = "0.2.1"
 min_herdr_version = "0.9.0"
 description = "Drag to select terminal text, add feedback, and send it with context to an agent."
 platforms = ["macos", "windows", "linux"]
