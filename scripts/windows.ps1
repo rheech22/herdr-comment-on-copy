@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 public static class ForegroundWindow {
     [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr window, out uint process);
+    [DllImport("user32.dll")] public static extern uint GetClipboardSequenceNumber();
 }
 '@
 
@@ -22,7 +23,7 @@ while ($null -ne ($line = [Console]::ReadLine())) {
                 } else {
                     [Windows.Forms.Clipboard]::SetText([string]$request.text)
                 }
-                $result = $null
+                $result = [string][ForegroundWindow]::GetClipboardSequenceNumber()
             }
             'sample' {
                 [uint32]$foregroundPid = 0
@@ -32,7 +33,14 @@ while ($null -ne ($line = [Console]::ReadLine())) {
                 if ($foregroundPid -gt 0) {
                     $front = [Diagnostics.Process]::GetProcessById($foregroundPid).ProcessName
                 }
-                $result = @{ front = $front; text = [Windows.Forms.Clipboard]::GetText() }
+                $stable = $false
+                for ($attempt = 0; $attempt -lt 3; $attempt++) {
+                    $revision = [string][ForegroundWindow]::GetClipboardSequenceNumber()
+                    $text = [Windows.Forms.Clipboard]::GetText()
+                    if ($revision -eq [string][ForegroundWindow]::GetClipboardSequenceNumber()) { $stable = $true; break }
+                }
+                if (-not $stable) { throw 'Clipboard changed during sampling' }
+                $result = @{ front = $front; text = $text; revision = $revision }
             }
             'process' {
                 $targetPid = [int]$request.pid

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { watch } from "../../src/watch.ts";
 import { toggle } from "../../src/toggle.ts";
@@ -8,15 +8,22 @@ import { enrichPayload } from "../../src/enrich.ts";
 import { Herdr } from "../../src/herdr.ts";
 import { paths } from "../../src/paths.ts";
 import type { Payload } from "../../src/types.ts";
+import { rememberPopupCopy } from "../../src/clipboard.ts";
 
 const desktop: Desktop = {
   readClipboard: async () => readFileSync(process.env.MOCK_CLIPBOARD!, "utf8"),
   writeClipboard: async () => {},
-  sample: async () => ({ front: readFileSync(process.env.MOCK_FRONT!, "utf8"), text: readFileSync(process.env.MOCK_CLIPBOARD!, "utf8") }),
+  sample: async () => ({ front: readFileSync(process.env.MOCK_FRONT!, "utf8"), text: readFileSync(process.env.MOCK_CLIPBOARD!, "utf8"),
+    revision: String(statSync(process.env.MOCK_CLIPBOARD!).mtimeMs) }),
   checkAutomatic: () => { if (process.env.MOCK_UNSUPPORTED) throw new Error("Unsupported desktop; use comment_on_copy.open"); },
   close: () => {},
 };
 if (process.argv[2] === "watch") await watch(desktop);
+else if (process.argv[2] === "copy") {
+  const text = process.argv[3]!;
+  writeFileSync(process.env.MOCK_CLIPBOARD!, text);
+  rememberPopupCopy(text, String(statSync(process.env.MOCK_CLIPBOARD!).mtimeMs));
+}
 else if (process.argv[2] === "enrich") {
   const payload = JSON.parse(readFileSync(paths.payload, "utf8")) as Payload;
   await enrichPayload(new Herdr(), payload, patch => Object.assign(payload, patch), new AbortController().signal);

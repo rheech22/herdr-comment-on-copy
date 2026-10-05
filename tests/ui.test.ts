@@ -186,6 +186,23 @@ describe("OpenTUI popup", () => {
     await app.setup.flush();
     expect(app.closed).toBe(true);
   });
+  test("j/k and arrows navigate the target picker without editing the comment", async () => {
+    const app = await create({ text: "selection", agents: [agent("p1"), agent("p2"), agent("p3")] });
+    await app.setup.mockInput.typeText("draft");
+    await app.ui.choose(); await app.setup.flush();
+    app.setup.mockInput.pressKey("k");
+    app.setup.mockInput.pressArrow("up");
+    app.setup.mockInput.pressKey("j");
+    app.setup.mockInput.pressArrow("down");
+    app.setup.mockInput.pressArrow("down");
+    app.setup.mockInput.pressKey("k");
+    app.setup.mockInput.pressArrow("up");
+    app.setup.mockInput.pressKey("j");
+    app.setup.mockInput.pressEnter(); await app.setup.flush();
+    expect(app.ui.target?.pane_id).toBe("p2");
+    expect(app.ui.editor.plainText).toBe("draft");
+    expect(app.ui.picking).toBe(false);
+  });
   test("PageDown and mouse wheel scroll the copied selection", async () => {
     const app = await create({ text: Array.from({ length: 40 }, (_, n) => `line ${n}`).join("\n"), agents: [] });
     app.setup.mockInput.pressKey("\x1b[6~");
@@ -516,7 +533,7 @@ describe("Collection tab", () => {
     expect(app.ui.undoButton.y).toBeLessThan(20);
     expect(app.setup.captureCharFrame()).toContain("Selection");
     expect(app.setup.captureCharFrame()).toContain("first feedback");
-    expect(app.setup.captureCharFrame()).toContain("Browse with j/k, select items, then choose an action.");
+    expect(app.setup.captureCharFrame()).toContain("Browse with j/k or ↑/↓, select items, then choose an action.");
     const check = app.ui.collection.controls.getRenderable("check-button")!;
     await app.setup.mockMouse.click(check.x + 2, check.y); await app.setup.flush();
     expect(app.ui.collection.checked.size).toBe(1);
@@ -528,17 +545,21 @@ describe("Collection tab", () => {
     await app.setup.mockMouse.click(app.ui.undoButton.x + 2, app.ui.undoButton.y); await app.setup.flush();
     expect(store.list()).toHaveLength(2);
   });
-  test("j/k moves the collection cursor, Space selects, and Ctrl+D deletes checked items without changing Comment input", async () => {
+  test("j/k and arrows move the collection cursor, Space selects, and Ctrl+D deletes checked items without changing Comment input", async () => {
     const store = collectionStore();
     store.add({ text: "first selection" }, "first comment");
     store.add({ text: "second selection" }, "second comment");
     const app = await create({ text: "", view: "collection" }, false, store);
-    app.setup.mockInput.pressKey("j"); await app.setup.flush();
+    app.setup.mockInput.pressArrow("down"); await app.setup.flush();
     expect(app.ui.collection.index).toBe(1);
     expect(app.setup.captureCharFrame()).toContain("second comment");
     app.setup.mockInput.pressKey(" "); await app.setup.flush();
     const selected = app.ui.collection.items[1]!.id;
     expect(app.ui.collection.checked.has(selected)).toBe(true);
+    app.setup.mockInput.pressArrow("up"); await app.setup.flush();
+    expect(app.ui.collection.index).toBe(0);
+    app.setup.mockInput.pressKey("j"); await app.setup.flush();
+    expect(app.ui.collection.index).toBe(1);
     app.setup.mockInput.pressKey("k"); await app.setup.flush();
     expect(app.ui.collection.index).toBe(0);
     app.setup.mockInput.pressKey("d", { ctrl: true }); await app.setup.flush();

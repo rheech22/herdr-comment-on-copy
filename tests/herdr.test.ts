@@ -91,6 +91,43 @@ describe("Herdr API", () => {
     expect(await api.locate("copied selection")).toEqual({ pane_id: "focused", row: 0 });
     expect(requested).toEqual(["focused"]);
   });
+  test("Markdown, links, terminal wrapping and short first lines do not prevent source matching", async () => {
+    const cases = [
+      ["---\nmeaningful selected contents", "---\nmeaningful selected contents", undefined],
+      ["## Important title\nA meaningful **bold sentence**.", "Important title\nA meaningful bold sentence.", 0],
+      ["Visit [Herdr documentation](https://herdr.dev).", "Visit Herdr documentation.", 0],
+      ["a_long_identifier_here", "a_long_ident\nifier_here", 0],
+      ["```ts\nconst selected = true;\n```", "const selected = true;", undefined],
+      ["first generic label\na distinctive selected sentence", "only a distinctive selected sentence", undefined],
+    ] as const;
+    for (const [selection, screen, row] of cases) {
+      const api = fakeApi(method => ({ result: method === "pane.list" ? { panes: [{ pane_id: "p1", focused: true }] } : { read: { text: screen } } }));
+      expect(await api.locate(selection)).toEqual({ pane_id: "p1", ...(row === undefined ? {} : { row }) });
+    }
+  });
+  test("decoration and a single shared short label do not establish a source", async () => {
+    const api = fakeApi(method => ({ result: method === "pane.list" ? { panes: [{ pane_id: "p1", focused: true }] } : { read: { text: "title\ncompletely unrelated output" } } }));
+    expect(await api.locate("---\n```\n┌───┐")).toBeNull();
+    expect(await api.locate("title\nunique selected contents")).toBeNull();
+  });
+  test("source matching retries a focused pane after a transient redraw", async () => {
+    let reads = 0;
+    const api = fakeApi(method => ({ result: method === "pane.list" ? { panes: [{ pane_id: "p1", focused: true }] } : { read: { text: ++reads === 1 ? "loading screen" : "original selected content" } } }));
+    expect(await api.locate("original selected content")).toEqual({ pane_id: "p1", row: 0 });
+    expect(reads).toBe(2);
+  });
+  test("a stalled source request has a bounded wait before abandoning the capture", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const api = fakeApi(async method => {
+      if (method === "pane.list") return { result: { panes: [{ pane_id: "p1", focused: true }] } };
+      await gate;
+      return { result: { read: { text: "unrelated" } } };
+    });
+    try {
+      expect(await Promise.race([api.locate("original selected contents"), Bun.sleep(600).then(() => "stalled")])).toBeNull();
+    } finally { release(); }
+  });
   test("metadata expires after the watcher stops refreshing", async () => {
     const calls: Record<string, unknown>[] = [];
     const api = fakeApi((method, params) => {

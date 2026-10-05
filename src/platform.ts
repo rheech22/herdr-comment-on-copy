@@ -1,10 +1,15 @@
 import { run, writeCommand } from "./system.ts";
 import { WindowsDesktop } from "./windows.ts";
+import { DesktopBridge } from "./desktop-bridge.ts";
+import { join } from "node:path";
+import { rememberPopupCopy } from "./clipboard.ts";
+
+export interface ClipboardSample { front: string; text: string; revision?: string; }
 
 export interface Desktop {
   readClipboard(): Promise<string>;
-  writeClipboard(text: string): Promise<void>;
-  sample(): Promise<{ front: string; text: string }>;
+  writeClipboard(text: string): Promise<string | void>;
+  sample(): Promise<ClipboardSample>;
   checkAutomatic(): void;
   close(): void;
 }
@@ -20,7 +25,8 @@ export function focusedSway(tree: any): string {
 }
 
 export function createDesktop(platform = process.platform, env = process.env,
-  execute: Execute = run, write = writeCommand, which = (name: string) => Bun.which(name)) : Desktop {
+  execute: Execute = run, write = writeCommand, which = (name: string) => Bun.which(name),
+  makeBridge = (command: string[]): Pick<DesktopBridge, "request" | "close"> => new DesktopBridge(command)) : Desktop {
   const requireCommand = (name: string) => {
     if (!which(name)) throw new Error(`Missing ${name}. Install it or use comment_on_copy.open for selected text.`);
   };
@@ -32,21 +38,20 @@ export function createDesktop(platform = process.platform, env = process.env,
     const bridge = new WindowsDesktop();
     return {
       readClipboard: () => bridge.request<string>({ action: "read" }),
-      writeClipboard: async text => { await bridge.request({ action: "write", text }); },
+      writeClipboard: text => bridge.request<string>({ action: "write", text }),
       sample: () => bridge.request({ action: "sample" }),
       checkAutomatic: () => requireCommand("powershell.exe"),
       close: () => bridge.close(),
     };
   } else if (platform === "darwin") {
-    read = ["pbpaste"];
-    copy = ["pbcopy"];
-    front = async () => {
-      const asn = (await execute(["lsappinfo", "front"])).trim();
-      if (!asn) return "";
-      const info = await execute(["lsappinfo", "info", "-only", "name", asn]);
-      return (info.split("=").slice(1).join("=") || "").trim().replace(/^"|"$/g, "");
+    const bridge = makeBridge(["/usr/bin/osascript", "-l", "JavaScript", join(import.meta.dir, "../scripts/macos.js")]);
+    return {
+      readClipboard: () => bridge.request<string>({ action: "read" }),
+      writeClipboard: text => bridge.request<string>({ action: "write", text }),
+      sample: () => bridge.request<ClipboardSample>({ action: "sample" }),
+      checkAutomatic: () => requireCommand("osascript"),
+      close: () => bridge.close(),
     };
-    check = () => { for (const name of ["pbpaste", "pbcopy", "lsappinfo"]) requireCommand(name); };
   } else if (platform === "linux" && env.WAYLAND_DISPLAY) {
     read = ["wl-paste", "--no-newline", "--type", "text"];
     copy = ["wl-copy", "--type", "text/plain;charset=utf-8"];
@@ -90,7 +95,10 @@ export function createDesktop(platform = process.platform, env = process.env,
 let desktop: Desktop | undefined;
 export const getDesktop = () => desktop ||= createDesktop();
 export const readClipboard = () => getDesktop().readClipboard();
-export const writeClipboard = (text: string) => getDesktop().writeClipboard(text);
+export async function writeClipboard(text: string): Promise<void> {
+  const revision = await getDesktop().writeClipboard(text);
+  rememberPopupCopy(text, revision || undefined);
+}
 export function closeDesktop() { desktop?.close(); desktop = undefined; }
 
 export async function processCommand(pid: number): Promise<string> {

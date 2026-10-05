@@ -72,6 +72,11 @@ test("daemon filters external copies, captures context, stops cleanly, and allow
     expect(await child.exited).toBe(0);
     expect(error).toBe("");
   };
+  const runPopupCopy = async (text: string) => {
+    const child = Bun.spawn([process.execPath, join(import.meta.dir, "fixtures/watcher.ts"), "copy", text], { env, stdout: "pipe", stderr: "pipe" });
+    expect(await child.exited).toBe(0);
+  };
+  const popups = () => readFileSync(log, "utf8").split("\n").filter(line => line === "popup").length;
   const wait = async (predicate: () => boolean) => {
     for (let i = 0; i < 200 && !predicate(); i++) await Bun.sleep(20);
     expect(predicate()).toBe(true);
@@ -118,10 +123,39 @@ test("daemon filters external copies, captures context, stops cleanly, and allow
     await wait(() => readFileSync(log, "utf8").includes("popup"));
     // Let the watcher observe that a popup is open, then simulate closing it.
     await Bun.sleep(400);
-    writeFileSync(clipboard, "composed popup output");
+    await runPopupCopy("composed popup output");
     rmSync(join(state, "popup.lock"));
     await Bun.sleep(800);
-    expect(readFileSync(log, "utf8").match(/popup/g)?.length).toBe(1);
+    expect(popups()).toBe(1);
+    expect(readFileSync(join(state, "capture.log"), "utf8")).toContain('"reason":"popup-result"');
+    // A deliberate repeat remains a new copy, rather than a recent-history rejection.
+    writeFileSync(clipboard, "copied 한글 text");
+    await wait(() => popups() === 2);
+    await Bun.sleep(400);
+    // Closing without copying must not discard the very next selection.
+    rmSync(join(state, "popup.lock"));
+    paneText = "Fresh selected contents";
+    writeFileSync(clipboard, "---\n## Fresh **selected** contents");
+    await wait(() => popups() === 3);
+    expect(JSON.parse(readFileSync(join(state, "payload.json"), "utf8")).text).toBe("---\n## Fresh **selected** contents");
+    await Bun.sleep(400);
+    rmSync(join(state, "popup.lock"));
+    paneText = "unrelated contents after redraw";
+    const retry = "a retryable selection absent from the screen";
+    writeFileSync(clipboard, retry);
+    await wait(() => readFileSync(join(state, "capture.log"), "utf8").trim().split("\n").some(line => {
+      const event = JSON.parse(line);
+      return event.reason === "source-not-found" && event.chars === retry.length;
+    }));
+    expect(popups()).toBe(3);
+    // Rewriting the same text after a failed lookup is visible through the revision.
+    paneText = retry;
+    writeFileSync(clipboard, retry);
+    await wait(() => popups() === 4);
+    const diagnostics = readFileSync(join(state, "capture.log"), "utf8");
+    expect(diagnostics).toContain('"reason":"outside-terminal"');
+    expect(diagnostics).toContain('"reason":"opened"');
+    for (const text of [retry, "copied 한글 text", "composed popup output", "Fresh"]) expect(diagnostics).not.toContain(text);
     await runToggle();
     await wait(() => !existsSync(pidFile));
     expect(metadata.at(-1)?.ttl_ms).toBe(1);
@@ -129,9 +163,11 @@ test("daemon filters external copies, captures context, stops cleanly, and allow
     expect(existsSync(join(state, "watch.stop"))).toBe(false);
     await wait(() => { try { process.kill(watcher!, 0); return false; } catch { return true; } });
     watcher = undefined;
+    rmSync(join(state, "popup.lock"));
     await runToggle(true);
     expect(existsSync(pidFile)).toBe(false);
     expect(readFileSync(log, "utf8").match(/comment on copy: on/g)?.length).toBe(1);
+    paneText = undefined;
     const selected = "manual 한글 selection";
     const runOpen = async (action = "open") => {
       const child = Bun.spawn([process.execPath, join(import.meta.dir, "../scripts/run.ts"), action], {

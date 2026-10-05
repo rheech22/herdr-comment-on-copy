@@ -11,6 +11,8 @@ export const paths = {
   payload: join(stateDir, "payload.json"),
   lock: join(stateDir, "popup.lock"),
   watchLog: join(stateDir, "watch.log"),
+  captureLog: join(stateDir, "capture.log"),
+  clipboardOutput: join(stateDir, "clipboard-output.json"),
 };
 export const ensureState = () => mkdirSync(stateDir, { recursive: true, mode: 0o700 });
 export function remove(path: string) {

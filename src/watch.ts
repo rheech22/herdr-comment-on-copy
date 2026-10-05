@@ -1,10 +1,11 @@
 import { existsSync } from "node:fs";
-import { ClipboardHistory } from "./clipboard.ts";
+import { ClipboardHistory, consumePopupCopy } from "./clipboard.ts";
 import { clearStaleLock, openNote } from "./capture.ts";
 import { Herdr } from "./herdr.ts";
 import { claimPid, paths, readPid, releasePid, remove, stopRequested } from "./paths.ts";
 import { createDesktop, type Desktop } from "./platform.ts";
 import { runningPid } from "./toggle.ts";
+import { traceCapture } from "./diagnostics.ts";
 
 export async function watch(desktop: Desktop = createDesktop()) {
   try {
@@ -26,9 +27,8 @@ export async function watch(desktop: Desktop = createDesktop()) {
     clearStaleLock();
     let marking: Promise<void> | undefined;
     try {
-      const history = new ClipboardHistory(initial.text);
-      history.observe(initial.text, initial.front);
-      let wasOpen = false;
+      const history = new ClipboardHistory(initial.text, initial.revision);
+      history.observe(initial.text, initial.front, initial.revision);
       let markedAt = 0;
       let errorLogged = false;
       while (!stopping && !stopRequested()) {
@@ -39,20 +39,27 @@ export async function watch(desktop: Desktop = createDesktop()) {
           markedAt = Date.now();
           marking = api.mark(true).finally(() => { marking = undefined; });
         }
-        if (existsSync(paths.lock)) { wasOpen = true; continue; }
         try {
-          const { front, text } = await desktop.sample();
+          const { front, text, revision } = await desktop.sample();
           if (stopping || stopRequested()) break;
-          const decision = history.observe(text, front, wasOpen);
-          wasOpen = false;
+          const decision = history.observe(text, front, revision, consumePopupCopy(text, revision));
           errorLogged = false;
-          if (decision !== "open") continue;
+          if (decision === "unchanged") continue;
+          const chars = Array.from(text).length;
+          const lines = text.split("\n").length;
+          const started = Date.now();
+          if (decision !== "open") { traceCapture(decision, chars, lines); continue; }
+          if (existsSync(paths.lock)) { traceCapture("popup-open", chars, lines); continue; }
           // A terminal foreground alone does not establish that the copy came from Herdr.
           const source = await api.locate(text);
-          if (!source || stopping || stopRequested()) continue;
-          await openNote(api, text, source);
+          if (!source || stopping || stopRequested()) { traceCapture("source-not-found", chars, lines, Date.now() - started); continue; }
+          const opened = await openNote(api, text, source);
+          traceCapture(opened ? "opened" : "popup-open", chars, lines, Date.now() - started, source.pane_id);
         } catch (error) {
-          if (!errorLogged) console.error((error as Error).message);
+          if (!errorLogged) {
+            traceCapture("sampling-or-popup-error", 0, 0);
+            console.error((error as Error).message);
+          }
           errorLogged = true;
         }
       }

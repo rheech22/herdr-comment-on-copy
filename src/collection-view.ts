@@ -178,8 +178,8 @@ export function mountCollection(renderer: CliRenderer, store: CollectionStore,
   }
   function onKey(key: KeyEvent): boolean {
     if (!available()) return false;
-    if (!key.ctrl && key.name === "k") move(index - 1);
-    else if (!key.ctrl && key.name === "j") move(index + 1);
+    if (!key.ctrl && !key.meta && ["k", "up"].includes(key.name)) move(index - 1);
+    else if (!key.ctrl && !key.meta && ["j", "down"].includes(key.name)) move(index + 1);
     else if (key.name === "space" || key.name === " ") checkButton.invoke();
     else if (key.ctrl && key.name === "a") allButton.invoke();
     else if (key.ctrl && key.name === "d") deleteButton.invoke();

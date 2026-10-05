@@ -85,25 +85,33 @@ describe("clipboard watcher policy", () => {
     }
     for (const name of ["Finder", "Firefox", "Chrome", "Code", "", "forest"]) expect(isTerminal(name)).toBe(false);
   });
-  test("filters clipboard history and repeated intentional copies", () => {
+  test("previously copied values remain eligible, including retries after source lookup failed", () => {
     const history = new ClipboardHistory("initial");
     history.observe("initial", "WezTerm");
     expect(history.observe("one", "WezTerm")).toBe("open");
     history.observe("two", "WezTerm");
-    expect(history.observe("one", "WezTerm")).toBe("repeat");
+    expect(history.observe("one", "WezTerm")).toBe("open");
   });
-  test("popup-produced text is remembered without reopening", () => {
+  test("only explicit popup output is suppressed; closing alone never consumes the user's next copy", () => {
     const history = new ClipboardHistory("initial");
     history.observe("initial", "WezTerm");
-    expect(history.observe("composed prompt", "WezTerm", true)).toBe("popup-result");
+    expect(history.observe("composed prompt", "WezTerm", undefined, true)).toBe("popup-result");
     history.observe("other", "WezTerm");
-    expect(history.observe("composed prompt", "WezTerm")).toBe("repeat");
+    expect(history.observe("composed prompt", "WezTerm")).toBe("open");
   });
-  test("old values age out of the bounded history", () => {
-    const history = new ClipboardHistory("initial", 2);
-    history.observe("initial", "WezTerm");
-    history.observe("one", "WezTerm");
-    history.observe("two", "WezTerm");
-    expect(history.observe("initial", "WezTerm")).toBe("open");
+  test("native clipboard revisions distinguish identical copies from unchanged polls", () => {
+    const history = new ClipboardHistory("same", "1");
+    expect(history.observe("same", "WezTerm", "1")).toBe("unchanged");
+    expect(history.observe("same", "WezTerm", "2")).toBe("open");
+    expect(history.observe("same", "WezTerm", "2")).toBe("unchanged");
+    expect(history.observe("same", "WezTerm", "3", true)).toBe("popup-result");
+    expect(history.observe("same", "WezTerm", "4")).toBe("open");
+  });
+  test("text-only backends can detect changed text but cannot observe an identical rewrite", () => {
+    const history = new ClipboardHistory("same");
+    history.observe("same", "kitty");
+    expect(history.observe("same", "kitty")).toBe("unchanged");
+    expect(history.observe("other", "kitty")).toBe("open");
+    expect(history.observe("same", "kitty")).toBe("open");
   });
 });

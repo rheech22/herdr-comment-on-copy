@@ -2,6 +2,7 @@ import { createConnection } from "node:net";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Agent, ApiReply, Call, Pane, Source } from "./types.ts";
+import { matchSelection } from "./selection.ts";
 
 export function indicator(env: NodeJS.ProcessEnv = process.env): string {
   let value: unknown = env.COMMENT_ON_COPY_INDICATOR;
@@ -99,38 +100,49 @@ export class Herdr {
     try { await this.result("notification.show", { title, body }); } catch { /* Best effort. */ }
   }
   async locate(text: string): Promise<Source | null> {
-    const needle = text.trim().split("\n")[0]?.trim() || "";
-    if (Array.from(needle).length < 4) return null;
-    try {
-      const { panes } = await this.result<{ panes: Pane[] }>("pane.list");
-      const read = async (pane: Pane): Promise<Source | null> => {
-        try {
-          const result = await this.result<{ read: { text: string } }>("pane.read", { pane_id: pane.pane_id, source: "visible", format: "text" });
-          const lines = result.read.text.split("\n");
-          for (let row = 0; row < lines.length; row++) {
-            const line = lines[row]!;
-            const offset = line.indexOf(needle);
-            if (offset >= 0) return { pane_id: pane.pane_id, row };
-          }
-        } catch { /* Try the next pane. */ }
-        return null;
-      };
-      const focused = panes.find(pane => pane.focused);
-      if (focused) {
-        const found = await read(focused);
-        if (found) return found;
-      }
-      const others = panes.filter(pane => pane !== focused);
-      for (let index = 0; index < others.length; index += 4) {
-        const found = await Promise.any(others.slice(index, index + 4).map(async pane => {
-          const source = await read(pane);
-          if (!source) throw new Error("Selection not found");
-          return source;
-        })).catch(() => null);
-        if (found) return found;
-      }
-    } catch { /* No source is better than a guessed source. */ }
-    return null;
+    if (!matchSelection(text, text)) return null;
+    const controller = new AbortController();
+    const api = new Herdr(this.request === call ? <T>(method: string, params: Record<string, unknown>) => call<T>(method, params, controller.signal) : this.request);
+    let timeout: ReturnType<typeof setTimeout>;
+    const deadline = new Promise<null>(resolve => {
+      timeout = setTimeout(() => { controller.abort(); resolve(null); }, 250);
+    });
+    const find = async (): Promise<Source | null> => {
+      try {
+        const { panes } = await api.result<{ panes: Pane[] }>("pane.list");
+        const read = async (pane: Pane): Promise<Source | null> => {
+          try {
+            const result = await api.result<{ read: { text: string } }>("pane.read", { pane_id: pane.pane_id, source: "visible", format: "text" });
+            const match = matchSelection(text, result.read.text);
+            if (match) return { pane_id: pane.pane_id, ...match };
+          } catch { /* Try the next pane. */ }
+          return null;
+        };
+        const focused = panes.find(pane => pane.focused);
+        if (focused) {
+          const found = await read(focused);
+          if (found) return found;
+        }
+        const others = panes.filter(pane => pane !== focused);
+        for (let index = 0; index < others.length; index += 4) {
+          if (controller.signal.aborted) return null;
+          const found = await Promise.any(others.slice(index, index + 4).map(async pane => {
+            const source = await read(pane);
+            if (!source) throw new Error("Selection not found");
+            return source;
+          })).catch(() => null);
+          if (found) return found;
+        }
+        // One short retry catches redraws without putting a long wait before the popup.
+        if (focused && !controller.signal.aborted) {
+          await Bun.sleep(40);
+          if (!controller.signal.aborted) return read(focused);
+        }
+      } catch { /* No source is better than a guessed source. */ }
+      return null;
+    };
+    try { return await Promise.race([find(), deadline]); }
+    finally { clearTimeout(timeout!); controller.abort(); }
   }
   async mark(on: boolean) {
     try {

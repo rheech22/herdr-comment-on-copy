@@ -55,7 +55,7 @@ command = "comment_on_copy.toggle"
 
 수동으로 열려면 위와 같은 형식으로 `comment_on_copy.open`에 단축키를 지정합니다. 선택한 텍스트를 사용하고, 선택이 없으면 클립보드를 사용합니다. 다른 Wayland 환경에서도 사용할 수 있으며, 선택한 텍스트에는 클립보드 도구가 필요하지 않습니다.
 
-`Ctrl+K`는 선택 텍스트·코멘트·원래 context를 저장하고 **Collection** 탭으로 이동합니다. 새 항목은 포커스만 받고 체크되지는 않습니다. `Tab` 또는 탭 클릭으로 전환하며 초안과 체크 상태는 유지됩니다. Collection에서 `j/k`로 탐색하고 `Space` 또는 항목 클릭으로 체크합니다. `Ctrl+S/E/Y`는 체크한 항목들을 수집 순서대로 하나의 메시지로 묶어 처리하고, `Ctrl+L`은 전체를 받을 에이전트를 선택합니다. 항목은 재시작 및 액션 처리 후에도 로컬에 보관됩니다. `Ctrl+D`로 체크한 항목을 삭제하고, 팝업이 열린 동안 `Ctrl+Z`로 마지막 삭제를 되돌릴 수 있습니다. 새 텍스트를 복사하지 않고 목록을 열려면 `comment_on_copy.collection`에 단축키를 지정합니다.
+`Ctrl+K`는 선택 텍스트·코멘트·원래 context를 저장하고 **Collection** 탭으로 이동합니다. 새 항목은 포커스만 받고 체크되지는 않습니다. `Tab` 또는 탭 클릭으로 전환하며 초안과 체크 상태는 유지됩니다. Collection에서 `j/k` 또는 `↑/↓`로 탐색하고 `Space` 또는 항목 클릭으로 체크합니다. `Ctrl+S/E/Y`는 체크한 항목들을 수집 순서대로 하나의 메시지로 묶어 처리하고, `Ctrl+L`은 전체를 받을 에이전트를 선택합니다. 항목은 재시작 및 액션 처리 후에도 로컬에 보관됩니다. `Ctrl+D`로 체크한 항목을 삭제하고, 팝업이 열린 동안 `Ctrl+Z`로 마지막 삭제를 되돌릴 수 있습니다. 새 텍스트를 복사하지 않고 목록을 열려면 `comment_on_copy.collection`에 단축키를 지정합니다.
 
 메시지 액션은 비어 있지 않은 코멘트가 있어야 활성화됩니다. Collection에서는 체크한 모든 항목에 코멘트가 있어야 하며, send·submit에는 대상 에이전트도 필요합니다.
 
@@ -83,13 +83,16 @@ rows = [
 | Ctrl+L | 에이전트 선택 |
 | Ctrl+K | 저장하고 Collection 열기 |
 | Tab | Comment / Collection 전환 |
-| j / k | 다음 / 이전 항목으로 이동 (Collection) |
+| j / ↓, k / ↑ | 다음 / 이전 항목 또는 에이전트로 이동 (Collection / 대상 선택) |
+| Enter | 대상 선택 확정 |
 | Space / Ctrl+A | 항목 체크 / 전체 체크 전환 (Collection) |
 | Ctrl+D / Ctrl+Z | 체크한 항목 삭제 / 삭제 되돌리기 (Collection) |
 | PageUp / PageDown | 선택한 텍스트 스크롤 |
-| Esc | 닫기 |
+| Esc | 닫기 / 대상 선택 취소 |
 
-최근 복사한 값의 중복은 무시합니다. 켜진 동안에는 붙여넣기용 복사도 팝업을 엽니다.
+켜진 동안에는 붙여넣기용 복사도 팝업을 엽니다. macOS와 Windows에서는 같은 텍스트를 다시 복사해도 감지합니다. Linux에서는 텍스트 변경을 감지하므로 동일한 내용의 재복사는 수동 액션을 사용합니다.
+
+감지 결과와 누락 사유는 복사한 텍스트 없이 `capture.log`에 기록하며, 보조 프로세스/API 오류는 `watch.log`에 남깁니다. 파일 위치는 macOS/Linux의 `~/.local/state/herdr/plugins/comment_on_copy`, Windows의 `%LOCALAPPDATA%\herdr\plugins\comment_on_copy`입니다 (`XDG_STATE_HOME`으로 상태 경로를 바꿀 수 있습니다).
 
 ## 로컬 개발
 

@@ -55,7 +55,7 @@ The popup opens before optional context finishes loading. You can type immediate
 
 For manual use, bind `comment_on_copy.open` to a shortcut using the same format above. It opens selected text, or the clipboard if there is no selection. This also works on other Wayland desktops; selected text requires no clipboard tools.
 
-`Ctrl+K` collects the selection, comment, and original context, then opens the **Collection** tab with the new item focused but unchecked. Use `Tab` or click the tabs to switch; your draft and checkboxes are preserved. In Collection, use `j/k` to browse and `Space` or click an item to check it. `Ctrl+S/E/Y` combines checked items in collection order into one message; `Ctrl+L` chooses one recipient for the batch. Items stay saved locally across restarts and after these actions. `Ctrl+D` removes checked items; `Ctrl+Z` undoes the last deletion while the popup remains open. Bind `comment_on_copy.collection` to open the list without copying text.
+`Ctrl+K` collects the selection, comment, and original context, then opens the **Collection** tab with the new item focused but unchecked. Use `Tab` or click the tabs to switch; your draft and checkboxes are preserved. In Collection, use `j/k` or `↑/↓` to browse and `Space` or click an item to check it. `Ctrl+S/E/Y` combines checked items in collection order into one message; `Ctrl+L` chooses one recipient for the batch. Items stay saved locally across restarts and after these actions. `Ctrl+D` removes checked items; `Ctrl+Z` undoes the last deletion while the popup remains open. Bind `comment_on_copy.collection` to open the list without copying text.
 
 Message actions require a nonblank comment; in Collection, every checked item must have one. Send and submit also require a target agent.
 
@@ -83,13 +83,16 @@ Copied and sent messages separate `context`, `selection`, and `comment` blocks. 
 | Ctrl+L | Choose an agent |
 | Ctrl+K | Collect and open Collection |
 | Tab | Switch Comment / Collection |
-| j / k | Next / previous item (Collection) |
+| j / ↓, k / ↑ | Next / previous item or agent (Collection / target picker) |
+| Enter | Confirm the target (picker) |
 | Space / Ctrl+A | Check an item / toggle all (Collection) |
 | Ctrl+D / Ctrl+Z | Remove checked items / undo deletion (Collection) |
 | PageUp / PageDown | Scroll the selection |
-| Esc | Close |
+| Esc | Close / cancel target selection |
 
-Recent duplicate clipboard values are ignored. Copies intended for pasting also open the popup while enabled.
+Copies intended for pasting also open the popup while enabled. macOS and Windows detect copying identical text again; Linux detects text changes, so use the manual action for an identical copy.
+
+Capture decisions are recorded in `capture.log` without copied text; helper/API errors are in `watch.log`. These files are in `~/.local/state/herdr/plugins/comment_on_copy` on macOS/Linux, or `%LOCALAPPDATA%\herdr\plugins\comment_on_copy` on Windows (`XDG_STATE_HOME` overrides the state root).
 
 ## Local development
 

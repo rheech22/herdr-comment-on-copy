@@ -51,7 +51,7 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
   const deliveryReady = () => messageReady() && !!target;
   let pickerIndex = 0;
   const hint = () => tab === "comment" ? "Type a comment, then choose an action."
-    : "Browse with j/k, select items, then choose an action.";
+    : "Browse with j/k or ↑/↓, select items, then choose an action.";
 
   const root = new BoxRenderable(renderer, {
     id: "note", width: "100%", height: "100%", flexDirection: "column", paddingX: 1,
@@ -134,7 +134,7 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
   populateAgents();
   const pickerBox = new BoxRenderable(renderer, {
     id: "picker-box", width: "100%", height: "100%", border: true, borderColor: faint,
-    title: "choose a target · Enter selects · Esc cancels", titleColor: faint, visible: false,
+    title: "choose a target · j/k or ↑/↓ · Enter selects · Esc cancels", titleColor: faint, visible: false,
   });
   pickerBox.add(picker);
   commentBox.add(editor);
@@ -304,8 +304,8 @@ export function mountNote(renderer: CliRenderer, payload: Payload, options: Note
     else if (key.ctrl && key.name === "y") copyButton.invoke();
     else if (!picking && key.ctrl && key.name === "k") collectButton.invoke();
     else if (!picking && key.name === "tab") tabSwitch.invoke();
-    else if (picking && key.name === "up") movePicker(pickerIndex - 1);
-    else if (picking && key.name === "down") movePicker(pickerIndex + 1);
+    else if (picking && !key.ctrl && !key.meta && ["up", "k"].includes(key.name)) movePicker(pickerIndex - 1);
+    else if (picking && !key.ctrl && !key.meta && ["down", "j"].includes(key.name)) movePicker(pickerIndex + 1);
     else if (picking && key.name === "return") selectAgent(pickerIndex);
     else if (!picking && tab === "collection") handled = collection.onKey(key);
     else if (!picking && key.name === "pageup") selection.scrollBy(-3);

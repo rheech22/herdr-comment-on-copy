@@ -54,9 +54,13 @@ test("missing desktop tools and headless sessions fail explicitly", () => {
 });
 
 test("macOS supports terminal hosts other than WezTerm", async () => {
-  const desktop = createDesktop("darwin", {}, async argv => argv[0] === "pbpaste" ? "selection" : argv[1] === "front" ? "ASN:1" : 'name="Ghostty"',
-    async () => {}, () => "available");
-  expect(await desktop.sample()).toEqual({ front: "Ghostty", text: "selection" });
+  const commands: string[][] = [];
+  const desktop = createDesktop("darwin", {}, undefined, undefined, () => "available", command => {
+    commands.push(command);
+    return { request: async <T>() => ({ front: "Ghostty", text: "selection", revision: "42" }) as T, close: () => {} };
+  });
+  expect(await desktop.sample()).toEqual({ front: "Ghostty", text: "selection", revision: "42" });
+  expect(commands[0]?.slice(0, 3)).toEqual(["/usr/bin/osascript", "-l", "JavaScript"]);
 });
 
 test("Windows bridge serializes Unicode requests in one persistent process and recovers clipboard errors", async () => {
@@ -82,10 +86,19 @@ test.skipIf(process.env.COMMENT_ON_COPY_NATIVE_TESTS !== "1")("native desktop cl
   try {
     try { original = await desktop.readClipboard(); } catch { /* A fresh CI desktop may have no selection. */ }
     const text = '한글 中文 日本語 🙂\r\nline two\n';
-    await desktop.writeClipboard(text);
+    const firstRevision = await desktop.writeClipboard(text);
     expect(await desktop.readClipboard()).toBe(text);
     desktop.checkAutomatic();
-    expect(typeof (await desktop.sample()).front).toBe("string");
+    const first = await desktop.sample();
+    expect(typeof first.front).toBe("string");
+    if (process.platform !== "linux") {
+      expect(first.revision).toBe(firstRevision!);
+      const secondRevision = await desktop.writeClipboard(text);
+      const second = await desktop.sample();
+      expect(second.text).toBe(text);
+      expect(second.revision).toBe(secondRevision!);
+      expect(second.revision).not.toBe(first.revision);
+    }
   } finally {
     try { await desktop.writeClipboard(original); } finally { desktop.close(); }
   }

@@ -55,7 +55,7 @@ command = "comment_on_copy.toggle"
 
 如需手动打开，请按上述格式为 `comment_on_copy.open` 配置快捷键。优先使用选中文本，没有选区时使用剪贴板。其他 Wayland 桌面也可使用；选中文本无需剪贴板工具。
 
-`Ctrl+K` 保存选中文本、批注和原始上下文，然后切换到 **Collection** 标签页。新条目获得焦点，但不会自动勾选。按 `Tab` 或点击标签页切换，草稿和勾选状态会保留。在 Collection 中使用 `j/k` 浏览，按 `Space` 或点击条目勾选。`Ctrl+S/E/Y` 将勾选条目按收集顺序合并为一条消息处理；`Ctrl+L` 为整批条目选择接收者。条目保存在本地，重启或执行操作后仍会保留。`Ctrl+D` 删除勾选条目，弹窗保持打开时可用 `Ctrl+Z` 撤销最后一次删除。为 `comment_on_copy.collection` 配置快捷键，即可直接打开列表，无需复制新文本。
+`Ctrl+K` 保存选中文本、批注和原始上下文，然后切换到 **Collection** 标签页。新条目获得焦点，但不会自动勾选。按 `Tab` 或点击标签页切换，草稿和勾选状态会保留。在 Collection 中使用 `j/k` 或 `↑/↓` 浏览，按 `Space` 或点击条目勾选。`Ctrl+S/E/Y` 将勾选条目按收集顺序合并为一条消息处理；`Ctrl+L` 为整批条目选择接收者。条目保存在本地，重启或执行操作后仍会保留。`Ctrl+D` 删除勾选条目，弹窗保持打开时可用 `Ctrl+Z` 撤销最后一次删除。为 `comment_on_copy.collection` 配置快捷键，即可直接打开列表，无需复制新文本。
 
 消息操作需要非空批注；在 Collection 中，每个勾选条目都必须有批注。send 和 submit 还需要选择目标智能体。
 
@@ -83,13 +83,16 @@ rows = [
 | Ctrl+L | 选择智能体 |
 | Ctrl+K | 收集并打开 Collection |
 | Tab | 切换 Comment / Collection |
-| j / k | 下一个 / 上一个条目（Collection） |
+| j / ↓, k / ↑ | 下一个 / 上一个条目或智能体（Collection / 目标选择） |
+| Enter | 确认目标 |
 | Space / Ctrl+A | 勾选条目 / 切换全选（Collection） |
 | Ctrl+D / Ctrl+Z | 删除勾选条目 / 撤销删除（Collection） |
 | PageUp / PageDown | 滚动选中文本 |
-| Esc | 关闭 |
+| Esc | 关闭 / 取消目标选择 |
 
-最近复制过的重复内容会被忽略。开启后，为粘贴而进行的复制也会打开弹窗。
+开启后，为粘贴而进行的复制也会打开弹窗。macOS 和 Windows 可以检测再次复制相同文本；Linux 检测文本变化，再次复制相同内容时请使用手动操作。
+
+检测结果及跳过原因记录在 `capture.log` 中，不包含复制的文本；辅助进程/API 错误记录在 `watch.log` 中。文件位于 macOS/Linux 的 `~/.local/state/herdr/plugins/comment_on_copy`，或 Windows 的 `%LOCALAPPDATA%\herdr\plugins\comment_on_copy`（`XDG_STATE_HOME` 可覆盖状态根目录）。
 
 ## 本地开发
 
